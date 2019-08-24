@@ -4,6 +4,7 @@ use log::debug;
 use quick_xml::Reader;
 use quick_xml::events::Event;
 
+#[derive(Debug)]
 enum Tag {
     Tag3,
     Tag2
@@ -20,19 +21,19 @@ fn main() {
         Ok(mut reader) => {
             let mut buf = Vec::new();
             let mut tags = Vec::new();
-            let mut current_tag: Option<Tag> = None;
+            let mut current_tags: Vec<Tag> = Vec::new();
             loop {
                 match reader.read_event(&mut buf) {
                     Ok(Event::Start(ref e)) => {
                         match e.name() {
                             b"tag3" => {
-                                current_tag = Some(Tag::Tag3);
+                                current_tags.push(Tag::Tag3);
                             },
                             _ => ()
                         }
                     },
                     Ok(Event::Text(e)) => {
-                        match current_tag {
+                        match current_tags.last() {
                             Some(_) => tags.push(e.unescape_and_decode(&reader).expect("Error content tag")),
                             None => (),
                         }
@@ -40,7 +41,7 @@ fn main() {
                     Ok(Event::End(e)) => {
                         match e.name() {
                             b"tag3" => {
-                                current_tag = None;
+                                let _ = current_tags.pop();
                             },
                             _ => ()
                         }
@@ -51,6 +52,7 @@ fn main() {
                 }
                 buf.clear();
             }
+            println!("current_tag: {:?}", current_tags);
             println!("Tags3 events: {:?}", tags);
         },
         Err(error) => println!("{}", error),
