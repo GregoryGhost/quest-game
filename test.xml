@@ -5,4 +5,6 @@ Kek
     </tag2>
     <tag3>Test 2 kek cheburek<tag3>Test 2 kek cheburek</tag3></tag3>
     <tag3>Test 3 kek cheburek</tag3>
+    <node id="101234" kek="lol">Test Node</node>
+    <node id="10123433" kek="lol">T234234</node>
 </tag1>
