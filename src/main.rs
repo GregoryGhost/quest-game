@@ -1,5 +1,4 @@
-use log::debug;
-use petgraph::Graph;
+use petgraph::graph::{NodeIndex, UnGraph};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
@@ -18,28 +17,28 @@ struct Edge {
 
 #[derive(Debug, Clone)]
 enum Tag {
-    Weight(Vertex),
+    Weight(Edge),
     Node(Vertex),
 }
 
-fn read_graphml(path: &'static str) -> Result<Graph<Vertex, String>, &'static str> {
+fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static str> {
     let reader1 = Reader::from_file(path);
+
     //TODO: переписать на итератор, возвращающий просто xml-ноды, имеющие атрибуты и т.д.
     match reader1 {
         Ok(mut reader) => {
             let mut buf = Vec::new();
             let mut current_tags: Vec<Tag> = Vec::new();
-            let mut graph = Graph::<Vertex, String>::new();
+            let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
 
             loop {
                 match reader.read_event(&mut buf) {
                     Ok(Event::Start(ref e)) => match e.name() {
                         b"node" => {
-                            let t = e.attributes()
-                                .find(|a| {
-                                    let k = a.as_ref().unwrap().key.into();
-                                    return String::from_utf8(k).unwrap().contains("id")
-                                });
+                            let t = e.attributes().find(|a| {
+                                let k = a.as_ref().unwrap().key.into();
+                                String::from_utf8(k).unwrap().contains("id")
+                            });
                             let val = String::from_utf8(t.unwrap().unwrap().value.into()).unwrap();
                             let node = Tag::Node(Vertex {
                                 id: val.parse::<u64>().unwrap(),
@@ -48,27 +47,90 @@ fn read_graphml(path: &'static str) -> Result<Graph<Vertex, String>, &'static st
                             println!("{:?}", node);
                             current_tags.push(node);
                         }
-                        // b"edge" => {
-                        //     current_tags.push(Tag::Weight);
-                        // }
+                        b"edge" => {
+                            let source_id = {
+                                let t = e
+                                    .attributes()
+                                    .find(|a| {
+                                        let k = a.as_ref().unwrap().key.into();
+                                        String::from_utf8(k).unwrap().contains("source")
+                                    })
+                                    .unwrap()
+                                    .unwrap();
+                                let val = String::from_utf8(t.value.into()).unwrap();
+                                val.parse::<u64>().unwrap()
+                            };
+
+                            let target_id = {
+                                let t = e
+                                    .attributes()
+                                    .find(|a| {
+                                        let k = a.as_ref().unwrap().key.into();
+                                        String::from_utf8(k).unwrap().contains("target")
+                                    })
+                                    .unwrap()
+                                    .unwrap();
+                                let val = String::from_utf8(t.value.into()).unwrap();
+                                val.parse::<u64>().unwrap()
+                            };
+                            let source = {
+                                let s = current_tags
+                                    .iter()
+                                    .find(|tag| {
+                                        if let Tag::Node(a) = tag {
+                                            a.id == source_id
+                                        } else {
+                                            false
+                                        }
+                                    })
+                                    .unwrap();
+                                match s {
+                                    Tag::Node(a) => a,
+                                    _ => unreachable!(),
+                                }
+                            };
+                            let target = {
+                                let s = current_tags
+                                    .iter()
+                                    .find(|tag| {
+                                        if let Tag::Node(a) = tag {
+                                            a.id == target_id
+                                        } else {
+                                            false
+                                        }
+                                    })
+                                    .unwrap();
+                                match s {
+                                    Tag::Node(a) => a,
+                                    _ => unreachable!(),
+                                }
+                            };
+                            let edge = Tag::Weight(Edge {
+                                source: source.clone(),
+                                target: target.clone(),
+                                text: String::from("nop"),
+                            });
+
+                            current_tags.push(edge);
+                        }
                         _ => (),
                     },
                     Ok(Event::Text(e)) => match current_tags.last() {
                         Some(Tag::Node(t)) => {
-                            graph.add_node(
-                                Vertex{text: e.unescape_and_decode(&reader).expect("Error content tag"),..*t},
-                            );
+                            graph.add_node(Vertex {
+                                text: e.unescape_and_decode(&reader).expect("Error content tag"),
+                                ..*t
+                            });
                         }
-                        // Some(Tag::Weight) => (),
+                        Some(Tag::Weight(t)) => {
+                            graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), t.clone());
+                        }
                         _ => (),
                     },
                     Ok(Event::End(e)) => match e.name() {
-                        b"node" => {
+                        b"node" | b"edge" => {
                             let _ = current_tags.pop();
                         }
-                        // b"edge" => {
-                        //     let _ = current_tags.pop();
-                        // }
                         _ => (),
                     },
                     Err(e) => panic!("Error at position {}: {:?}", reader.buffer_position(), e),
@@ -90,19 +152,8 @@ fn main() {
 
     match read_graphml("test.xml") {
         Ok(graphml) => {
-            println!("nodes: {:?}", graphml);
+            println!("graph: {:?}", graphml);
         }
         Err(error) => println!("{:?}", error),
     }
-}
-
-fn make_graph() -> Graph<&'static str, &'static str> {
-    let mut deps = Graph::<&str, &str>::new();
-    let pg = deps.add_node("petgraph");
-    let fb = deps.add_node("fixedbitset");
-    let qc = deps.add_node("quickcheck");
-    let rand = deps.add_node("rand");
-    let libc = deps.add_node("libc");
-    deps.extend_with_edges(&[(pg, fb), (pg, qc), (qc, rand), (rand, libc), (qc, libc)]);
-    deps.clone()
 }
