@@ -1,6 +1,29 @@
 use petgraph::graph::{NodeIndex, UnGraph};
 use quick_xml::events::Event;
 use quick_xml::Reader;
+use std::num::ParseIntError;
+
+// #[derive(Debug, PartialEq, Eq, Clone)]
+// struct XmlNode {
+//     name: Option<String>,
+//     tag: String,
+//     attributes: Option<Vec<String>>,
+//     childs: XmlNode
+// }
+
+// struct XmlEntryIterator<B: BufRead> {
+//     parser: Event
+// }
+
+// impl<B: BufRead> Iterator for XmlEntryIterator<B> {
+//     type Item = Result<Entry>;
+//     fn next(&mut self) -> Option<Result<Entry>> {
+
+//         loop {
+//             match self.
+//         }
+//     }
+// }
 
 #[derive(Debug, Clone)]
 struct Vertex {
@@ -21,6 +44,39 @@ enum Tag {
     Node(Vertex),
 }
 
+fn find_node_id(
+    node: &quick_xml::events::BytesStart<'_>,
+    attr_id: &'static str,
+) -> Result<u64, ParseIntError> {
+    let t = node
+        .attributes()
+        .find(|a| {
+            let k = a.as_ref().unwrap().key.into();
+            String::from_utf8(k).unwrap().contains(attr_id)
+        })
+        .unwrap()
+        .unwrap();
+    let val = String::from_utf8(t.value.into()).unwrap();
+    val.parse::<u64>()
+}
+
+fn get_node_by_tag(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
+    let found_node = tags
+        .iter()
+        .find(|tag| {
+            if let Tag::Node(vertex) = tag {
+                vertex.id == search_node_id
+            } else {
+                false
+            }
+        })
+        .unwrap();
+    match found_node {
+        Tag::Node(vertex) => Some(vertex),
+        _ => None,
+    }
+}
+
 fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static str> {
     let reader1 = Reader::from_file(path);
 
@@ -35,76 +91,20 @@ fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static st
                 match reader.read_event(&mut buf) {
                     Ok(Event::Start(ref e)) => match e.name() {
                         b"node" => {
-                            let t = e.attributes().find(|a| {
-                                let k = a.as_ref().unwrap().key.into();
-                                String::from_utf8(k).unwrap().contains("id")
-                            });
-                            let val = String::from_utf8(t.unwrap().unwrap().value.into()).unwrap();
                             let node = Tag::Node(Vertex {
-                                id: val.parse::<u64>().unwrap(),
+                                id: find_node_id(&e, "id").unwrap(),
                                 text: String::from("nop"),
                             });
                             println!("{:?}", node);
                             current_tags.push(node);
                         }
                         b"edge" => {
-                            let source_id = {
-                                let t = e
-                                    .attributes()
-                                    .find(|a| {
-                                        let k = a.as_ref().unwrap().key.into();
-                                        String::from_utf8(k).unwrap().contains("source")
-                                    })
-                                    .unwrap()
+                            let source =
+                                get_node_by_tag(&current_tags, find_node_id(&e, "source").unwrap())
                                     .unwrap();
-                                let val = String::from_utf8(t.value.into()).unwrap();
-                                val.parse::<u64>().unwrap()
-                            };
-
-                            let target_id = {
-                                let t = e
-                                    .attributes()
-                                    .find(|a| {
-                                        let k = a.as_ref().unwrap().key.into();
-                                        String::from_utf8(k).unwrap().contains("target")
-                                    })
-                                    .unwrap()
+                            let target =
+                                get_node_by_tag(&current_tags, find_node_id(&e, "target").unwrap())
                                     .unwrap();
-                                let val = String::from_utf8(t.value.into()).unwrap();
-                                val.parse::<u64>().unwrap()
-                            };
-                            let source = {
-                                let s = current_tags
-                                    .iter()
-                                    .find(|tag| {
-                                        if let Tag::Node(a) = tag {
-                                            a.id == source_id
-                                        } else {
-                                            false
-                                        }
-                                    })
-                                    .unwrap();
-                                match s {
-                                    Tag::Node(a) => a,
-                                    _ => unreachable!(),
-                                }
-                            };
-                            let target = {
-                                let s = current_tags
-                                    .iter()
-                                    .find(|tag| {
-                                        if let Tag::Node(a) = tag {
-                                            a.id == target_id
-                                        } else {
-                                            false
-                                        }
-                                    })
-                                    .unwrap();
-                                match s {
-                                    Tag::Node(a) => a,
-                                    _ => unreachable!(),
-                                }
-                            };
                             let edge = Tag::Weight(Edge {
                                 source: source.clone(),
                                 target: target.clone(),
