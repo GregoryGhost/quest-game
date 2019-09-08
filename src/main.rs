@@ -51,26 +51,30 @@ fn find_node_id(
     let t = node
         .attributes()
         .find(|a| {
-            let k = a.as_ref().unwrap().key.into();
-            String::from_utf8(k).unwrap().contains(attr_id)
+            let k = a.as_ref().expect("get node attribute").key.into();
+            String::from_utf8(k)
+                .expect("get attr by key")
+                .contains(attr_id)
         })
-        .unwrap()
-        .unwrap();
-    let val = String::from_utf8(t.value.into()).unwrap();
+        .expect("got found node attribute")
+        .expect("got found node");
+    let val = String::from_utf8(t.value.into()).expect("get value node");
     val.parse::<u64>()
 }
 
 fn get_node_by_tag(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
+    println!("tags: {:?}", tags);
     let found_node = tags
         .iter()
         .find(|tag| {
+            println!("node by tag: {:?}", tag);
             if let Tag::Node(vertex) = tag {
                 vertex.id == search_node_id
             } else {
                 false
             }
         })
-        .unwrap();
+        .expect("got found node by tag");
     match found_node {
         Tag::Node(vertex) => Some(vertex),
         _ => None,
@@ -85,6 +89,7 @@ fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static st
         Ok(mut reader) => {
             let mut buf = Vec::new();
             let mut current_tags: Vec<Tag> = Vec::new();
+            let mut nodes: Vec<Tag> = Vec::new();
             let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
 
             loop {
@@ -92,19 +97,23 @@ fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static st
                     Ok(Event::Start(ref e)) => match e.name() {
                         b"node" => {
                             let node = Tag::Node(Vertex {
-                                id: find_node_id(&e, "id").unwrap(),
+                                id: find_node_id(&e, "id").expect("find node id"),
                                 text: String::from("nop"),
                             });
                             println!("{:?}", node);
                             current_tags.push(node);
                         }
                         b"edge" => {
-                            let source =
-                                get_node_by_tag(&current_tags, find_node_id(&e, "source").unwrap())
-                                    .unwrap();
-                            let target =
-                                get_node_by_tag(&current_tags, find_node_id(&e, "target").unwrap())
-                                    .unwrap();
+                            let source = get_node_by_tag(
+                                &nodes,
+                                find_node_id(&e, "source").expect("find source"),
+                            )
+                            .expect("get source");
+                            let target = get_node_by_tag(
+                                &nodes,
+                                find_node_id(&e, "target").expect("find target"),
+                            )
+                            .expect("get target");
                             let edge = Tag::Weight(Edge {
                                 source: source.clone(),
                                 target: target.clone(),
@@ -129,7 +138,15 @@ fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static st
                     },
                     Ok(Event::End(e)) => match e.name() {
                         b"node" | b"edge" => {
-                            let _ = current_tags.pop();
+                            let tag = current_tags.pop();
+                            match tag {
+                                Some(t) => {
+                                    if let Tag::Node(_) = t {
+                                        nodes.push(t);
+                                    }
+                                },
+                                _ => ()
+                            }
                         }
                         _ => (),
                     },

@@ -7,4 +7,6 @@ Kek
     <tag3>Test 3 kek cheburek</tag3>
     <node id="101234" kek="lol">Test Node</node>
     <node id="10123433" kek="lol">T234234</node>
+    <edge source="101234" target="10123433">Kek edge</edge>
+    <edge source="10123433" target="101234">Kek edge1234</edge>
 </tag1>
