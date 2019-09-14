@@ -3,27 +3,75 @@ use quick_xml::events::Event;
 use quick_xml::Reader;
 use std::num::ParseIntError;
 
-// #[derive(Debug, PartialEq, Eq, Clone)]
-// struct XmlNode {
-//     name: Option<String>,
-//     tag: String,
-//     attributes: Option<Vec<String>>,
-//     childs: XmlNode
-// }
+type XmlReader = Reader<std::io::BufReader<std::fs::File>>;
 
-// struct XmlEntryIterator<B: BufRead> {
-//     parser: Event
-// }
+#[derive(Debug, PartialEq, Eq, Clone)]
+struct XmlNode {
+    name: Option<String>,
+    tag: String,
+    attributes: Option<Vec<String>>,
+}
 
-// impl<B: BufRead> Iterator for XmlEntryIterator<B> {
-//     type Item = Result<Entry>;
-//     fn next(&mut self) -> Option<Result<Entry>> {
+struct XmlEntryIterator {
+    reader: XmlReader,
+}
 
-//         loop {
-//             match self.
-//         }
-//     }
-// }
+impl XmlEntryIterator {
+    pub fn new(reader: XmlReader) -> XmlEntryIterator {
+        XmlEntryIterator { reader: reader }
+    }
+}
+
+impl Iterator for XmlEntryIterator {
+    type Item = Result<XmlNode, quick_xml::Error>;
+
+    fn next(&mut self) -> Option<quick_xml::Result<XmlNode>> {
+        let mut buf = Vec::new();
+        let mut nodes: Vec<XmlNode> = Vec::new();
+
+        loop {
+            match self.reader.read_event(&mut buf) {
+                Ok(Event::Start(ref e)) => match e.name() {
+                    b"node" | b"edge" => {
+                        let node = XmlNode {
+                            name: None,
+                            tag: String::from(std::str::from_utf8(e.name()).unwrap()),
+                            attributes: None,
+                        };
+                        nodes.push(node);
+                    }
+                    _ => {}
+                },
+                Ok(Event::Text(e)) => match nodes.last() {
+                    Some(t) => {
+                        nodes.push(XmlNode {
+                            name: Some(
+                                e.unescape_and_decode(&self.reader)
+                                    .expect("Error content tag"),
+                            ),
+                            ..(*t).clone() //TODO: нужно переписать на Box<str>
+                        });
+                    }
+                    _ => {}
+                },
+                Ok(Event::End(e)) => match e.name() {
+                    b"node" | b"edge" => match nodes.pop() {
+                        Some(node) => return Some(Ok(node)),
+                        None => return None,
+                    },
+                    _ => (),
+                },
+                Err(e) => return Some(Err(e)),
+                Ok(Event::Eof) => {
+                    break;
+                }
+                _ => {}
+            }
+        }
+
+        None
+    }
+}
 
 #[derive(Debug, Clone)]
 struct Vertex {
@@ -144,8 +192,8 @@ fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static st
                                     if let Tag::Node(_) = t {
                                         nodes.push(t);
                                     }
-                                },
-                                _ => ()
+                                }
+                                _ => (),
                             }
                         }
                         _ => (),
