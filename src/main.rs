@@ -132,7 +132,6 @@ fn get_node_by_tag(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
 fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static str> {
     let reader1 = Reader::from_file(path);
 
-    //TODO: переписать на итератор, возвращающий просто xml-ноды, имеющие атрибуты и т.д.
     match reader1 {
         Ok(mut reader) => {
             let mut buf = Vec::new();
@@ -215,10 +214,51 @@ fn main() {
     //2.make graph from xml - manual
     //3.print graph
 
-    match read_graphml("test.xml") {
+    match read_graphml2("test.xml") {
         Ok(graphml) => {
             println!("graph: {:?}", graphml);
         }
         Err(error) => println!("{:?}", error),
+    }
+}
+
+fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static str> {
+    let reader = Reader::from_file(path);
+
+    match reader {
+        Ok(buf_reader) => {
+            let xml_document = XmlEntryIterator::new(buf_reader);
+            let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
+            let _ = xml_document.filter(|x| {
+                if let Ok(y) = x {
+                    if y.tag == "node" || y.tag == "edge" {
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                }
+            })
+            .for_each(|x| {
+                if let Ok(xml_node) = x {
+                    match xml_node.tag.as_ref() {
+                        "node" => {
+                            graph.add_node(Vertex { id: 666/* TODO */, text: String::from("TODO") });
+                        },
+                        "edge" => {
+                            let edge = panic!("TODO: construct edge");
+                            graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), edge);
+                        },
+                        _ => unreachable!(),
+                    }
+                } else {
+                    unreachable!();
+                }
+            });
+
+            Ok(graph)
+        },
+        Err(_) => Err("error read xml"),
     }
 }
