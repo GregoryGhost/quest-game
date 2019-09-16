@@ -7,7 +7,7 @@ type XmlReader = Reader<std::io::BufReader<std::fs::File>>;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct XmlNode {
-    name: Option<String>,
+    text: Option<String>,
     tag: String,
     attributes: Option<Vec<String>>,
 }
@@ -33,8 +33,9 @@ impl Iterator for XmlEntryIterator {
             match self.reader.read_event(&mut buf) {
                 Ok(Event::Start(ref e)) => match e.name() {
                     b"node" | b"edge" => {
+                        //TODO: нужно переписать как-то по другому
                         let node = XmlNode {
-                            name: None,
+                            text: None,
                             tag: String::from(std::str::from_utf8(e.name()).unwrap()),
                             attributes: None,
                         };
@@ -45,7 +46,7 @@ impl Iterator for XmlEntryIterator {
                 Ok(Event::Text(e)) => match nodes.last() {
                     Some(t) => {
                         nodes.push(XmlNode {
-                            name: Some(
+                            text: Some(
                                 e.unescape_and_decode(&self.reader)
                                     .expect("Error content tag"),
                             ),
@@ -129,6 +130,7 @@ fn get_node_by_tag(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
     }
 }
 
+#[deprecated]
 fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static str> {
     let reader1 = Reader::from_file(path);
 
@@ -222,6 +224,14 @@ fn main() {
     }
 }
 
+fn find_node_id2(node: &XmlNode, attr_id: &'static str) -> Result<u64, ParseIntError> {
+    unimplemented!();
+}
+
+fn get_node_by_tag2(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
+    unimplemented!();
+}
+
 fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static str> {
     let reader = Reader::from_file(path);
 
@@ -229,36 +239,40 @@ fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static s
         Ok(buf_reader) => {
             let xml_document = XmlEntryIterator::new(buf_reader);
             let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
-            let _ = xml_document.filter(|x| {
-                if let Ok(y) = x {
-                    if y.tag == "node" || y.tag == "edge" {
-                        true
+            let _ = xml_document
+                .filter(|x| {
+                    if let Ok(y) = x {
+                        if y.tag == "node" || y.tag == "edge" {
+                            true
+                        } else {
+                            false
+                        }
                     } else {
                         false
                     }
-                } else {
-                    false
-                }
-            })
-            .for_each(|x| {
-                if let Ok(xml_node) = x {
-                    match xml_node.tag.as_ref() {
-                        "node" => {
-                            graph.add_node(Vertex { id: 666/* TODO */, text: String::from("TODO") });
-                        },
-                        "edge" => {
-                            let edge = panic!("TODO: construct edge");
-                            graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), edge);
-                        },
-                        _ => unreachable!(),
+                })
+                .for_each(|x| {
+                    if let Ok(xml_node) = x {
+                        match xml_node.tag.as_ref() {
+                            "node" => {
+                                graph.add_node(Vertex {
+                                    id: find_node_id2(&xml_node, "id").expect("find node id"),
+                                    text: xml_node.text.expect("get node text"),
+                                });
+                            }
+                            "edge" => {
+                                let edge = panic!("TODO: construct edge");
+                                graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), edge);
+                            }
+                            _ => unreachable!(),
+                        }
+                    } else {
+                        unreachable!();
                     }
-                } else {
-                    unreachable!();
-                }
-            });
+                });
 
             Ok(graph)
-        },
+        }
         Err(_) => Err("error read xml"),
     }
 }
