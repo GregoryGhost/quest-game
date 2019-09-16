@@ -228,7 +228,7 @@ fn find_node_id2(node: &XmlNode, attr_id: &'static str) -> Result<u64, ParseIntE
     unimplemented!();
 }
 
-fn get_node_by_tag2(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
+fn get_node_by_tag2(tags: &Vec<XmlNode>, search_node_id: u64) -> Option<&Vertex> {
     unimplemented!();
 }
 
@@ -238,8 +238,7 @@ fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static s
     match reader {
         Ok(buf_reader) => {
             let xml_document = XmlEntryIterator::new(buf_reader);
-            let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
-            let _ = xml_document
+            let (xml_vertexes, xml_edges): (Vec<XmlNode>, Vec<XmlNode>) = xml_document
                 .filter(|x| {
                     if let Ok(y) = x {
                         if y.tag == "node" || y.tag == "edge" {
@@ -251,25 +250,33 @@ fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static s
                         false
                     }
                 })
-                .for_each(|x| {
-                    if let Ok(xml_node) = x {
-                        match xml_node.tag.as_ref() {
-                            "node" => {
-                                graph.add_node(Vertex {
-                                    id: find_node_id2(&xml_node, "id").expect("find node id"),
-                                    text: xml_node.text.expect("get node text"),
-                                });
-                            }
-                            "edge" => {
-                                let edge = panic!("TODO: construct edge");
-                                graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), edge);
-                            }
-                            _ => unreachable!(),
-                        }
-                    } else {
-                        unreachable!();
-                    }
+                .map(|x| x.expect("get ok xml node value"))
+                .partition(|x| x.tag == "node");
+
+            let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
+            for xml_vertex in xml_vertexes {
+                graph.add_node(Vertex {
+                    id: find_node_id2(&xml_vertex, "id").expect("find node id"),
+                    text: xml_vertex.text.expect("get node text"),
                 });
+            }
+
+            for xml_edge in &xml_edges {
+                let source_vertex = get_node_by_tag2(
+                    xml_edges.as_ref(),
+                    find_node_id2(&xml_edge, "source").expect("find source vertex"),
+                ).expect("get source vertex");
+                let target_vertex = get_node_by_tag2(
+                    xml_edges.as_ref(),
+                    find_node_id2(&xml_edge, "target").expect("find target vertex"),
+                ).expect("get target vertex");
+                let edge = Edge {
+                    source: source_vertex.clone(),
+                    target: target_vertex.clone(),
+                    text: (*xml_edge).clone().text.expect("get edge text"),//TODO: нужно сделать через Deref
+                };
+                graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), edge);
+            }
 
             Ok(graph)
         }
