@@ -93,6 +93,7 @@ enum Tag {
     Node(Vertex),
 }
 
+#[deprecated]
 fn find_node_id(
     node: &quick_xml::events::BytesStart<'_>,
     attr_id: &'static str,
@@ -111,6 +112,7 @@ fn find_node_id(
     val.parse::<u64>()
 }
 
+#[deprecated]
 fn get_node_by_tag(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
     println!("tags: {:?}", tags);
     let found_node = tags
@@ -128,6 +130,15 @@ fn get_node_by_tag(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
         Tag::Node(vertex) => Some(vertex),
         _ => None,
     }
+}
+
+fn get_vertex_by_id(vertexes: &Vec<Vertex>, search_node_id: u64) -> Option<&Vertex> {
+    println!("tags: {:?}", vertexes);
+    let found_node = vertexes.into_iter().find(|vertex| {
+        println!("node by tag: {:?}", vertex);
+        vertex.id == search_node_id
+    });
+    found_node
 }
 
 #[deprecated]
@@ -224,12 +235,14 @@ fn main() {
     }
 }
 
-fn find_node_id2(node: &XmlNode, attr_id: &'static str) -> Result<u64, ParseIntError> {
-    unimplemented!();
-}
-
-fn get_node_by_tag2(tags: &Vec<XmlNode>, search_node_id: u64) -> Option<&Vertex> {
-    unimplemented!();
+fn find_node_id2(node: XmlNode, attr_id: &'static str) -> Result<u64, ParseIntError> {
+    let val = node
+        .attributes
+        .expect("get node attributes")
+        .into_iter()
+        .find(|a| a.contains(attr_id))
+        .expect("got found node attribute");
+    val.clone().parse::<u64>()
 }
 
 fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static str> {
@@ -242,6 +255,7 @@ fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static s
                 .filter(|x| {
                     if let Ok(y) = x {
                         if y.tag == "node" || y.tag == "edge" {
+                            //TODO: нужно убрать в итераторе, так как дублируется код, а здесь оставить
                             true
                         } else {
                             false
@@ -254,28 +268,35 @@ fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static s
                 .partition(|x| x.tag == "node");
 
             let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
-            for xml_vertex in xml_vertexes {
-                graph.add_node(Vertex {
-                    id: find_node_id2(&xml_vertex, "id").expect("find node id"),
-                    text: xml_vertex.text.expect("get node text"),
-                });
-            }
+            let vertexes: Vec<Vertex> = xml_vertexes
+                .into_iter()
+                .map(|xml_vertex| Vertex {
+                    id: find_node_id2(xml_vertex.clone(), "id").expect("find node id"),
+                    text: xml_vertex.clone().text.expect("get node text"),
+                })
+                .collect();
 
-            for xml_edge in &xml_edges {
-                let source_vertex = get_node_by_tag2(
-                    xml_edges.as_ref(),
-                    find_node_id2(&xml_edge, "source").expect("find source vertex"),
-                ).expect("get source vertex");
-                let target_vertex = get_node_by_tag2(
-                    xml_edges.as_ref(),
-                    find_node_id2(&xml_edge, "target").expect("find target vertex"),
-                ).expect("get target vertex");
+            for xml_edge in xml_edges {
+                let source_vertex = get_vertex_by_id(
+                    &vertexes,
+                    find_node_id2(xml_edge.clone(), "source").expect("find source vertex"),
+                )
+                .expect("get source vertex");
+                let target_vertex = get_vertex_by_id(
+                    &vertexes,
+                    find_node_id2(xml_edge.clone(), "target").expect("find target vertex"),
+                )
+                .expect("get target vertex");
                 let edge = Edge {
                     source: source_vertex.clone(),
                     target: target_vertex.clone(),
-                    text: (*xml_edge).clone().text.expect("get edge text"),//TODO: нужно сделать через Deref
+                    text: xml_edge.clone().text.expect("get edge text"), //TODO: нужно сделать через Deref
                 };
                 graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), edge);
+            }
+
+            for vertex in vertexes {
+                graph.add_node(vertex);
             }
 
             Ok(graph)
