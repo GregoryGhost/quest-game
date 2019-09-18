@@ -1,16 +1,9 @@
 use petgraph::graph::{NodeIndex, UnGraph};
 use quick_xml::events::Event;
 use quick_xml::Reader;
-use std::num::ParseIntError;
+use std::string::FromUtf8Error;
 
 type XmlReader = Reader<std::io::BufReader<std::fs::File>>;
-
-#[derive(Debug, PartialEq, Eq, Clone)]
-struct XmlNode {
-    text: Option<String>,
-    tag: String,
-    attributes: Option<Vec<String>>,
-}
 
 struct XmlEntryIterator {
     reader: XmlReader,
@@ -23,41 +16,67 @@ impl XmlEntryIterator {
 }
 
 impl Iterator for XmlEntryIterator {
-    type Item = Result<XmlNode, quick_xml::Error>;
+    type Item = Result<Tag, quick_xml::Error>;
 
-    fn next(&mut self) -> Option<quick_xml::Result<XmlNode>> {
+    fn next(&mut self) -> Option<quick_xml::Result<Tag>> {
         let mut buf = Vec::new();
-        let mut nodes: Vec<XmlNode> = Vec::new();
+        let mut tags: Vec<Tag> = Vec::new();
 
         loop {
             match self.reader.read_event(&mut buf) {
                 Ok(Event::Start(ref e)) => match e.name() {
-                    b"node" | b"edge" => {
-                        //TODO: нужно переписать как-то по другому
-                        let node = XmlNode {
-                            text: None,
-                            tag: String::from(std::str::from_utf8(e.name()).unwrap()),
-                            attributes: None,
-                        };
-                        nodes.push(node);
-                    }
-                    _ => {}
-                },
-                Ok(Event::Text(e)) => match nodes.last() {
-                    Some(t) => {
-                        nodes.push(XmlNode {
-                            text: Some(
-                                e.unescape_and_decode(&self.reader)
-                                    .expect("Error content tag"),
-                            ),
-                            ..(*t).clone() //TODO: нужно переписать на Box<str>
-                        });
-                    }
-                    _ => {}
-                },
+                        b"node" => {
+                            let node = Tag::Node(Vertex {
+                                id: find_node_id(&e, "id").expect("find node id"),
+                                text: String::from("nop"),
+                            });
+
+                            println!("{:?}", node);
+
+                            tags.push(node);
+                        }
+                        b"edge" => {
+                            //TODO: какая-то проблема с нахождением вершин по ид
+                            let source = get_node_by_tag(
+                                &tags,
+                                &find_node_id(&e, "source").expect("find source"),
+                            )
+                            .expect("get source");
+
+                            println!("{:?}", source);
+
+                            let target = get_node_by_tag(
+                                &tags,
+                                &find_node_id(&e, "target").expect("find target"),
+                            )
+                            .expect("get target");
+
+                            println!("{:?}", target);
+
+                            let edge = Tag::Weight(Edge {
+                                source: source.clone(),
+                                target: target.clone(),
+                                text: String::from("nop"),
+                            });
+
+                            println!("{:?}", edge);
+
+                            tags.push(edge);
+                        }
+                        _ => (),
+                    },
+                Ok(Event::Text(e)) => match tags.last_mut() {
+                        Some(Tag::Node(t)) => {
+                            t.text = e.unescape_and_decode(&self.reader).expect("Error content tag");
+                        },
+                        Some(Tag::Weight(t)) => {
+                            t.text = e.unescape_and_decode(&self.reader).expect("Error content tag");
+                        },
+                        _ => (),
+                    },
                 Ok(Event::End(e)) => match e.name() {
-                    b"node" | b"edge" => match nodes.pop() {
-                        Some(node) => return Some(Ok(node)),
+                    b"node" | b"edge" => match tags.pop() {
+                        Some(tag) => return Some(Ok(tag)),
                         None => return None,
                     },
                     _ => (),
@@ -74,30 +93,29 @@ impl Iterator for XmlEntryIterator {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 struct Vertex {
-    id: u64,
+    id: String,
     text: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq,PartialEq)]
 struct Edge {
     source: Vertex,
     target: Vertex,
     text: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq,PartialEq)]
 enum Tag {
     Weight(Edge),
     Node(Vertex),
 }
 
-#[deprecated]
 fn find_node_id(
     node: &quick_xml::events::BytesStart<'_>,
     attr_id: &'static str,
-) -> Result<u64, ParseIntError> {
+) -> Result<String, FromUtf8Error> {
     let t = node
         .attributes()
         .find(|a| {
@@ -108,19 +126,18 @@ fn find_node_id(
         })
         .expect("got found node attribute")
         .expect("got found node");
-    let val = String::from_utf8(t.value.into()).expect("get value node");
-    val.parse::<u64>()
+    let val = String::from_utf8(t.value.into());
+    val
 }
 
-#[deprecated]
-fn get_node_by_tag(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
+fn get_node_by_tag<'a>(tags: &'a Vec<Tag>, search_node_id: &String) -> Option<&'a Vertex> {
     println!("tags: {:?}", tags);
     let found_node = tags
         .iter()
         .find(|tag| {
             println!("node by tag: {:?}", tag);
             if let Tag::Node(vertex) = tag {
-                vertex.id == search_node_id
+                vertex.id == (*search_node_id)
             } else {
                 false
             }
@@ -130,15 +147,6 @@ fn get_node_by_tag(tags: &Vec<Tag>, search_node_id: u64) -> Option<&Vertex> {
         Tag::Node(vertex) => Some(vertex),
         _ => None,
     }
-}
-
-fn get_vertex_by_id(vertexes: &Vec<Vertex>, search_node_id: u64) -> Option<&Vertex> {
-    println!("tags: {:?}", vertexes);
-    let found_node = vertexes.into_iter().find(|vertex| {
-        println!("node by tag: {:?}", vertex);
-        vertex.id == search_node_id
-    });
-    found_node
 }
 
 #[deprecated]
@@ -166,12 +174,12 @@ fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static st
                         b"edge" => {
                             let source = get_node_by_tag(
                                 &nodes,
-                                find_node_id(&e, "source").expect("find source"),
+                                &find_node_id(&e, "source").expect("find source"),
                             )
                             .expect("get source");
                             let target = get_node_by_tag(
                                 &nodes,
-                                find_node_id(&e, "target").expect("find target"),
+                                &find_node_id(&e, "target").expect("find target"),
                             )
                             .expect("get target");
                             let edge = Tag::Weight(Edge {
@@ -188,7 +196,7 @@ fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static st
                         Some(Tag::Node(t)) => {
                             graph.add_node(Vertex {
                                 text: e.unescape_and_decode(&reader).expect("Error content tag"),
-                                ..*t
+                                id: t.id.clone()
                             });
                         }
                         Some(Tag::Weight(t)) => {
@@ -227,7 +235,8 @@ fn main() {
     //2.make graph from xml - manual
     //3.print graph
 
-    match read_graphml2("test.xml") {
+    // match read_graphml2("test.xml") {
+        match read_graphml2("саси нло))) .graphml") {
         Ok(graphml) => {
             println!("graph: {:?}", graphml);
         }
@@ -235,15 +244,6 @@ fn main() {
     }
 }
 
-fn find_node_id2(node: XmlNode, attr_id: &'static str) -> Result<u64, ParseIntError> {
-    let val = node
-        .attributes
-        .expect("get node attributes")
-        .into_iter()
-        .find(|a| a.contains(attr_id))
-        .expect("got found node attribute");
-    val.clone().parse::<u64>()
-}
 
 fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static str> {
     let reader = Reader::from_file(path);
@@ -251,52 +251,21 @@ fn read_graphml2(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static s
     match reader {
         Ok(buf_reader) => {
             let xml_document = XmlEntryIterator::new(buf_reader);
-            let (xml_vertexes, xml_edges): (Vec<XmlNode>, Vec<XmlNode>) = xml_document
-                .filter(|x| {
-                    if let Ok(y) = x {
-                        if y.tag == "node" || y.tag == "edge" {
-                            //TODO: нужно убрать в итераторе, так как дублируется код, а здесь оставить
-                            true
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
-                    }
-                })
+            let (tag_vertexes, tag_edges): (Vec<Tag>, Vec<Tag>) = xml_document
                 .map(|x| x.expect("get ok xml node value"))
-                .partition(|x| x.tag == "node");
+                .partition(|x| match x { Tag::Node(_) => true, _ => false});
 
             let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
-            let vertexes: Vec<Vertex> = xml_vertexes
-                .into_iter()
-                .map(|xml_vertex| Vertex {
-                    id: find_node_id2(xml_vertex.clone(), "id").expect("find node id"),
-                    text: xml_vertex.clone().text.expect("get node text"),
-                })
-                .collect();
-
-            for xml_edge in xml_edges {
-                let source_vertex = get_vertex_by_id(
-                    &vertexes,
-                    find_node_id2(xml_edge.clone(), "source").expect("find source vertex"),
-                )
-                .expect("get source vertex");
-                let target_vertex = get_vertex_by_id(
-                    &vertexes,
-                    find_node_id2(xml_edge.clone(), "target").expect("find target vertex"),
-                )
-                .expect("get target vertex");
-                let edge = Edge {
-                    source: source_vertex.clone(),
-                    target: target_vertex.clone(),
-                    text: xml_edge.clone().text.expect("get edge text"), //TODO: нужно сделать через Deref
-                };
-                graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), edge);
+            for tag_edge in tag_edges {
+                if let Tag::Weight(edge) = tag_edge {
+                    graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), edge);
+                }
             }
 
-            for vertex in vertexes {
-                graph.add_node(vertex);
+            for tag_vertex in tag_vertexes {
+                if let Tag::Node(vertex) = tag_vertex {
+                    graph.add_node(vertex);
+                }
             }
 
             Ok(graph)
