@@ -4,7 +4,8 @@ use quick_xml::Reader;
 use std::string::FromUtf8Error;
 
 fn main() {
-    match read_graphml("саси нло))) .graphml") {
+    match read_graphml("test.xml") {
+        // match read_graphml("саси нло))) .graphml") {
         Ok(graphml) => {
             println!("graph: {:?}", graphml);
         }
@@ -25,48 +26,64 @@ impl XmlEntryIterator {
 }
 
 impl Iterator for XmlEntryIterator {
-    type Item = Result<XmlNode, quick_xml::Error>;
+    type Item = Result<GraphMLNode, quick_xml::Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut buf = Vec::new();
-        let mut nodes: Vec<XmlNode> = Vec::new();
+        let mut xml_nodes: Vec<XmlNode> = Vec::new();
+        let mut graphml_nodes: Vec<GraphMLNode> = Vec::new();
 
         loop {
             match self.reader.read_event(&mut buf) {
                 Ok(Event::Start(ref e)) => match e.name() {
                     b"node" => {
-                        let node = XmlNode::Node(Vertex {
-                            id: find_node_id(&e, "id").expect("find node id"),
+                        let node = GraphMLNode::Node(Vertex {
+                            id: find_node_attr_by_key(&e, "id").expect("find node id"),
                             text: String::from("nop"),
                         });
 
                         println!("{:?}", node);
 
-                        nodes.push(node);
+                        graphml_nodes.push(node);
                     }
                     b"edge" => {
-                        let edge = XmlNode::Weight(XmlEdge {
-                            source_id: find_node_id(&e, "source").expect("got source id"),
-                            target_id: find_node_id(&e, "target").expect("got target id"),
+                        let edge = GraphMLNode::Weight(XmlEdge {
+                            source_id: find_node_attr_by_key(&e, "source").expect("got source id"),
+                            target_id: find_node_attr_by_key(&e, "target").expect("got target id"),
                             text: String::from("nop"),
                         });
 
                         println!("{:?}", edge);
 
-                        nodes.push(edge);
+                        graphml_nodes.push(edge);
+                    }
+                    b"data" => {
+                        match find_node_attr_by_key(&e, "key")
+                            .expect("got data key")
+                            .as_bytes()
+                        {
+                            b"d3" => {
+                                xml_nodes.push(XmlNode::NodeData());
+                            }
+                            b"d10" => {
+                                xml_nodes.push(XmlNode::WeightData());
+                            }
+                            _ => (),
+                        }
                     }
                     _ => (),
                 },
-                Ok(Event::Text(e)) => match nodes.last_mut() {
-                    Some(XmlNode::Node(t)) => {
+                Ok(Event::CData(e)) => match graphml_nodes.last_mut() {
+                    Some(GraphMLNode::Node(t)) => {
                         //TODO: для получения текста нужно найти тег дочерний тег data с ключом "d3" и текст находиться в List->Label->Label.Text [CDATA]
                         t.text = e
                             .unescape_and_decode(&self.reader)
                             .expect("Error content tag");
                         println!("node text: {:?}", t.text);
                     }
-                    Some(XmlNode::Weight(t)) => {
-                        //TODO: для получения текста нужно найти тег дочерний тег data с ключом "d10" и текст находиться в List->Label->Label.Text [CDATA]
+                    Some(GraphMLNode::Weight(t)) => {
+                        //TODO: для получения текста нужно найти тег дочерний тег data с ключом "d10" и текст находиться в Data->List->Label->Label.Text [CDATA]
+
                         t.text = e
                             .unescape_and_decode(&self.reader)
                             .expect("Error content tag");
@@ -75,7 +92,7 @@ impl Iterator for XmlEntryIterator {
                     _ => (),
                 },
                 Ok(Event::End(e)) => match e.name() {
-                    b"node" | b"edge" => match nodes.pop() {
+                    b"node" | b"edge" => match graphml_nodes.pop() {
                         Some(tag) => return Some(Ok(tag)),
                         None => return None,
                     },
@@ -117,11 +134,19 @@ struct XmlEdge {
 enum XmlNode {
     Weight(XmlEdge),
     Node(Vertex),
+    NodeData(),
+    WeightData(),
 }
 
-fn find_node_id(
+#[derive(Debug)]
+enum GraphMLNode {
+    Weight(XmlEdge),
+    Node(Vertex),
+}
+
+fn find_node_attr_by_key(
     node: &quick_xml::events::BytesStart<'_>,
-    attr_id: &'static str,
+    attr_key: &'static str,
 ) -> Result<String, FromUtf8Error> {
     let found_node_id = node
         .attributes()
@@ -129,7 +154,7 @@ fn find_node_id(
             let k = a.as_ref().expect("get node attribute").key.into();
             String::from_utf8(k)
                 .expect("get attr by key")
-                .contains(attr_id)
+                .contains(attr_key)
         })
         .expect("got found node attribute")
         .expect("got found node");
@@ -137,9 +162,9 @@ fn find_node_id(
     val
 }
 
-fn get_node_by_id<'a>(nodes: &'a Vec<XmlNode>, search_node_id: &String) -> Option<&'a Vertex> {
-    let found_node = nodes.iter().find(|xml_node| {
-        if let XmlNode::Node(vertex) = xml_node {
+fn get_node_by_id<'a>(nodes: &'a Vec<GraphMLNode>, search_node_id: &String) -> Option<&'a Vertex> {
+    let found_node = nodes.iter().find(|graph_ml_node| {
+        if let GraphMLNode::Node(vertex) = graph_ml_node {
             vertex.id == (*search_node_id)
         } else {
             false
@@ -147,7 +172,7 @@ fn get_node_by_id<'a>(nodes: &'a Vec<XmlNode>, search_node_id: &String) -> Optio
     });
 
     match found_node {
-        Some(XmlNode::Node(vertex)) => Some(vertex),
+        Some(GraphMLNode::Node(vertex)) => Some(vertex),
         _ => None,
     }
 }
@@ -158,23 +183,23 @@ fn read_graphml(path: &'static str) -> Result<UnGraph<Vertex, Edge>, &'static st
     match reader {
         Ok(buf_reader) => {
             let xml_document = XmlEntryIterator::new(buf_reader);
-            let (xml_vertexes, xml_edges): (Vec<XmlNode>, Vec<XmlNode>) = xml_document
+            let (xml_vertexes, xml_edges): (Vec<GraphMLNode>, Vec<GraphMLNode>) = xml_document
                 .map(|x| x.expect("get ok xml node value"))
                 .partition(|x| match x {
-                    XmlNode::Node(_) => true,
+                    GraphMLNode::Node(_) => true,
                     _ => false,
                 });
 
             let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
 
             for xml_node in &xml_vertexes {
-                if let XmlNode::Node(vertex) = xml_node {
+                if let GraphMLNode::Node(vertex) = xml_node {
                     graph.add_node(vertex.clone());
                 }
             }
 
             for xml_node in &xml_edges {
-                if let XmlNode::Weight(xml_edge) = xml_node {
+                if let GraphMLNode::Weight(xml_edge) = xml_node {
                     let edge = Edge {
                         source: get_node_by_id(&xml_vertexes, &xml_edge.source_id)
                             .expect("got vertex")

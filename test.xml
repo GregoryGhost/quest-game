@@ -3,10 +3,135 @@ Kek
     <tag2>
         <tag4>gg</tag4>
     </tag2>
-    <tag3>Test 2 kek cheburek<tag3>Test 2 kek cheburek</tag3></tag3>
+    <tag3>Test 2 kek cheburek<tag3>Test 2 kek cheburek</tag3>
+    </tag3>
     <tag3>Test 3 kek cheburek</tag3>
-    <node id="101234" kek="lol">Test Node</node>
-    <node id="10123433" kek="lol">T234234</node>
-    <edge source="101234" target="10123433">Kek edge</edge>
-    <edge source="10123433" target="101234">Kek edge1234</edge>
+    <node id="n0">
+        <data key="d3">
+            <x:List>
+                <y:Label LayoutParameter="{x:Static y:InteriorStretchLabelModel.Center}">
+                    <y:Label.Text><![CDATA[Раннее утро твой взвод в месте с тобою движется по дороге в сторону расположения новой базы. в друг на горезонте ты видиш как какой то обек т на громадной скорости движется в сторону базы там вспыхивает серена и.... тишина, все это происходит за пару минут!!!]]></y:Label.Text>
+                    <y:Label.Style>
+                        <yjs:DefaultLabelStyle verticalTextAlignment="CENTER" horizontalTextAlignment="CENTER" wrapping="WORD" clipText="false" textFill="BLACK">
+                            <yjs:DefaultLabelStyle.font>
+                                <yjs:Font fontSize="12" fontFamily="Roboto"/>
+                            </yjs:DefaultLabelStyle.font>
+                        </yjs:DefaultLabelStyle>
+                    </y:Label.Style>
+                </y:Label>
+            </x:List>
+        </data>
+        <data key="d4">
+            <y:RectD X="-56.5" Y="-330.5" Width="591" Height="73"/>
+        </data>
+        <data key="d6">
+            <demostyle:FlowchartNodeStyle type="process" fill="#FFD2EEE7"/>
+        </data>
+        <port name="p0">
+            <data key="d15">
+                <y:FreeNodePortLocationModelParameter Ratio="0.5,0.9901960784313726"/>
+            </data>
+        </port>
+        <port name="p1">
+            <data key="d15">
+                <y:FreeNodePortLocationModelParameter Ratio="0.5,0.9901960784313726"/>
+            </data>
+        </port>
+    </node>
+    <node id="n1">
+        <data key="d3">
+            <x:List>
+                <y:Label LayoutParameter="{x:Static y:InteriorStretchLabelModel.Center}">
+                    <y:Label.Text><![CDATA[спрасить у капитана что происходит]]></y:Label.Text>
+                    <y:Label.Style>
+                        <yjs:DefaultLabelStyle verticalTextAlignment="CENTER" horizontalTextAlignment="CENTER" wrapping="WORD" clipText="false" textFill="BLACK">
+                            <yjs:DefaultLabelStyle.font>
+                                <yjs:Font fontSize="12" fontFamily="Roboto"/>
+                            </yjs:DefaultLabelStyle.font>
+                        </yjs:DefaultLabelStyle>
+                    </y:Label.Style>
+                </y:Label>
+            </x:List>
+        </data>
+        <data key="d4">
+            <y:RectD X="-56.5" Y="-190.5" Width="252" Height="51"/>
+        </data>
+        <data key="d6">
+            <demostyle:FlowchartNodeStyle type="process" fill="#FFD2EEE7"/>
+        </data>
+        <port name="p0">
+            <data key="d15">
+                <y:FreeNodePortLocationModelParameter Ratio="0.5,0.018867924528301883"/>
+            </data>
+        </port>
+        <port name="p1">
+            <data key="d15">
+                <y:FreeNodePortLocationModelParameter Ratio="0.5,0.9811320754716981"/>
+            </data>
+        </port>
+    </node>
+    <edge source="n0" target="n1">
+        <data key="d10">
+            <x:List>
+                <y:Label LayoutParameter="{x:Static y:InteriorStretchLabelModel.Center}">
+                    <y:Label.Text><![CDATA[спрасить у капитана что происходит]]></y:Label.Text>
+                    <y:Label.Style>
+                        <yjs:DefaultLabelStyle verticalTextAlignment="CENTER" horizontalTextAlignment="CENTER" wrapping="WORD" clipText="false" textFill="BLACK">
+                            <yjs:DefaultLabelStyle.font>
+                                <yjs:Font fontSize="12" fontFamily="Roboto"/>
+                            </yjs:DefaultLabelStyle.font>
+                        </yjs:DefaultLabelStyle>
+                    </y:Label.Style>
+                </y:Label>
+            </x:List>
+        </data>
+        <data key="d4">
+            <y:RectD X="-56.5" Y="-190.5" Width="252" Height="51"/>
+        </data>
+        <data key="d6">
+            <demostyle:FlowchartNodeStyle type="process" fill="#FFD2EEE7"/>
+        </data>
+        <port name="p0">
+            <data key="d15">
+                <y:FreeNodePortLocationModelParameter Ratio="0.5,0.018867924528301883"/>
+            </data>
+        </port>
+        <port name="p1">
+            <data key="d15">
+                <y:FreeNodePortLocationModelParameter Ratio="0.5,0.9811320754716981"/>
+            </data>
+        </port>
+    </edge>
+    <edge source="n1" target="n0">
+        <data key="d10">
+            <x:List>
+                <y:Label LayoutParameter="{x:Static y:InteriorStretchLabelModel.Center}">
+                    <y:Label.Text><![CDATA[спрасить у капитана что происходит]]></y:Label.Text>
+                    <y:Label.Style>
+                        <yjs:DefaultLabelStyle verticalTextAlignment="CENTER" horizontalTextAlignment="CENTER" wrapping="WORD" clipText="false" textFill="BLACK">
+                            <yjs:DefaultLabelStyle.font>
+                                <yjs:Font fontSize="12" fontFamily="Roboto"/>
+                            </yjs:DefaultLabelStyle.font>
+                        </yjs:DefaultLabelStyle>
+                    </y:Label.Style>
+                </y:Label>
+            </x:List>
+        </data>
+        <data key="d4">
+            <y:RectD X="-56.5" Y="-190.5" Width="252" Height="51"/>
+        </data>
+        <data key="d6">
+            <demostyle:FlowchartNodeStyle type="process" fill="#FFD2EEE7"/>
+        </data>
+        <port name="p0">
+            <data key="d15">
+                <y:FreeNodePortLocationModelParameter Ratio="0.5,0.018867924528301883"/>
+            </data>
+        </port>
+        <port name="p1">
+            <data key="d15">
+                <y:FreeNodePortLocationModelParameter Ratio="0.5,0.9811320754716981"/>
+            </data>
+        </port>
+    </edge>
 </tag1>
