@@ -7,8 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-petgraph-graphml = "1.0.0"
 petgraph = "0.4.13"
 log = "0.4.8"
-quick-xml = "0.15.0"
 roxmltree = "0.7.1"
