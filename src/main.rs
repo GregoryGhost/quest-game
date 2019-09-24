@@ -10,12 +10,19 @@ extern crate mdo;
 fn main() {
     const PATH: &str = "саси нло))) .graphml";
 
-    match read_graphml(PATH) {
-        Ok(graphml) => {
-            println!("graph: {:?}", graphml);
-        }
-        Err(error) => println!("{:?}", error),
-    }
+    let graph = read_graphml(PATH).expect("failed read graphml");
+    
+    start_game(&graph);
+}
+
+fn start_game(graph: &UnGraph<Vertex, Edge>) {
+    unimplemented!();
+    //0. Вывести текст сцены и варианты ответа для данной сцены (текст ребер);
+    //1. Считать номер варианта ответа;
+    //2. Найти номер варианта ответа в графе;
+    //2.1 Получить по найденному варианту следующую сцену;
+    //2.2 повторить с шага 0.
+    //3. Если номер варианта ответа не считался, то попросить ввести правильный ответ пользователя.
 }
 
 fn load_file(path: &str) -> String {
