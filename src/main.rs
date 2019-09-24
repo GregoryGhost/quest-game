@@ -1,10 +1,16 @@
+use mdo::option::{bind, mzero, ret};
 use petgraph::graph::{NodeIndex, UnGraph};
 use roxmltree::Node;
 use std::fs::File;
 use std::io::Read;
 
+#[macro_use]
+extern crate mdo;
+
 fn main() {
-    match read_graphml("саси нло))) .graphml") {
+    const PATH: &str = "саси нло))) .graphml";
+
+    match read_graphml(PATH) {
         Ok(graphml) => {
             println!("graph: {:?}", graphml);
         }
@@ -19,7 +25,14 @@ fn load_file(path: &str) -> String {
     text
 }
 
-fn read_graphml(path: &'static str) -> ResultGraphML {
+fn read_graphml(path: &str) -> ResultGraphML {
+    const NODE: &str = "node";
+    const EDGE: &str = "edge";
+    const NODE_TEXT_ATTR_KEY: &str = "d3";
+    const EDGE_TEXT_ATTR_KEY: &str = "d10";
+    const VERTEX_SOURCE_ATTR_KEY: &str = "source";
+    const VERTEX_TARGET_ATTR_KEY: &str = "target";
+
     let xml_doc = load_file(path);
     let doc = match roxmltree::Document::parse(&xml_doc) {
         Ok(v) => v,
@@ -29,23 +42,25 @@ fn read_graphml(path: &'static str) -> ResultGraphML {
     let nodes: Vec<GraphMLNode> = doc
         .root()
         .descendants()
-        .filter(|node| if node.is_element() { true } else { false })
+        .filter(|node| node.is_element())
         .fold(Vec::new(), |mut acc, node| {
             match node.tag_name().name().trim() {
-                "node" => {
+                NODE => {
                     acc.push(GraphMLNode::Node(Vertex {
                         id: find_node_attr_by_key(&node, "id").expect("find vertex id"),
-                        text: find_xml_node_text(&node, "d3")
+                        text: find_xml_node_text(&node, NODE_TEXT_ATTR_KEY)
                             .expect(format!("found node text {:?}", node).as_ref())
                             .to_string(),
                     }));
                     acc
                 }
-                "edge" => {
+                EDGE => {
                     acc.push(GraphMLNode::Weight(XmlEdge {
-                        source_id: find_node_attr_by_key(&node, "source").expect("got source id"),
-                        target_id: find_node_attr_by_key(&node, "target").expect("got target id"),
-                        text: find_xml_node_text(&node, "d10")
+                        source_id: find_node_attr_by_key(&node, VERTEX_SOURCE_ATTR_KEY)
+                            .expect("got source id"),
+                        target_id: find_node_attr_by_key(&node, VERTEX_TARGET_ATTR_KEY)
+                            .expect("got target id"),
+                        text: find_xml_node_text(&node, EDGE_TEXT_ATTR_KEY)
                             .map_or(Some("".to_string()), |x| Some(x.to_string()))
                             .unwrap(),
                     }));
@@ -64,51 +79,31 @@ fn read_graphml(path: &'static str) -> ResultGraphML {
     format_graph(vertexes, edges)
 }
 
-fn find_xml_node_text<'a>(node: &Node<'a, 'a>, attr_key: &'static str) -> Option<&'a str> {
-    //TODO: нужно переписать, слишком большая вложенность
-    node.children()
-        .into_iter()
-        .find(|x| {
-            let found_key = find_node_attr_by_key(x, "key")
-                .and_then(|x| if x == attr_key { Some(true) } else { None })
-                .is_some();
-            if x.tag_name().name() == "data" && found_key {
-                true
-            } else {
-                false
-            }
-        })
-        .and_then(|x| {
-            x.children()
-                .find(|x| {
-                    if x.tag_name().name() == "List" {
-                        true
-                    } else {
-                        false
-                    }
-                })
-                .and_then(|x1| {
-                    x1.children()
-                        .find(|x| {
-                            if x.tag_name().name() == "Label" {
-                                true
-                            } else {
-                                false
-                            }
-                        })
-                        .and_then(|x2| {
-                            x2.children()
-                                .find(|x| {
-                                    if x.tag_name().name() == "Label.Text" {
-                                        true
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .and_then(|x3| x3.text())
-                        })
-                })
-        })
+fn find_xml_node_text<'a>(node: &Node<'a, 'a>, attr_key: &str) -> Option<&'a str> {
+    const TAG_DATA: &str = "data";
+    const ATTR_TAG_KEY: &str = "key";
+    const TAG_LIST: &str = "List";
+    const TAG_LABEL: &str = "Label";
+    const TAG_LABEL_TEXT: &str = "Label.Text";
+
+    mdo! {
+        data =<< node.children()
+            .find(|x| {
+                let found_key = find_node_attr_by_key(x, ATTR_TAG_KEY)
+                    .and_then(|x| if x == attr_key { Some(true) } else { None })
+                    .is_some();
+
+                x.tag_name().name() == TAG_DATA && found_key
+            });
+        l =<< data.children()
+            .find(|x| x.tag_name().name() == TAG_LIST);
+        lbl =<< l.children()
+            .find(|x| x.tag_name().name() == TAG_LABEL);
+        lbl_txt =<< lbl.children()
+            .find(|x| x.tag_name().name() == TAG_LABEL_TEXT);
+
+        ret lbl_txt.text()
+    }
 }
 
 type ResultGraphML<'a> = Result<UnGraph<Vertex, Edge>, &'static str>;
@@ -139,17 +134,15 @@ enum GraphMLNode {
     Node(Vertex),
 }
 
-fn find_node_attr_by_key(node: &Node<'_, '_>, attr_key: &'static str) -> Option<String> {
-    let found_node_attr = node
+fn find_node_attr_by_key(node: &Node<'_, '_>, attr_key: &str) -> Option<String> {
+    node
         .attributes()
         .iter()
         .find(|a| a.name().contains(attr_key))
-        .and_then(|x| Some(x.value().into()));
-
-    found_node_attr
+        .and_then(|x| Some(x.value().into()))
 }
 
-fn get_node_by_id<'a>(nodes: &'a Vec<GraphMLNode>, search_node_id: &String) -> Option<&'a Vertex> {
+fn get_node_by_id<'a>(nodes: &'a [GraphMLNode], search_node_id: &str) -> Option<&'a Vertex> {
     nodes
         .iter()
         .find(|graph_ml_node| {
