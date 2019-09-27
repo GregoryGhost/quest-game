@@ -11,12 +11,48 @@ fn main() {
     const PATH: &str = "саси нло))) .graphml";
 
     let graph = read_graphml(PATH).expect("failed read graphml");
-    
+
     start_game(&graph);
 }
 
 fn start_game(graph: &UnGraph<Vertex, Edge>) {
-    unimplemented!();
+    const EXIT_CODE: u8 = 0;
+
+    let mut input = String::new();
+    let mut number: u8 = 0;
+
+    let choice_numbers = [1,2,3,4];
+
+    loop {
+        input.clear();
+        println!("numbers for choice: {:?}", choice_numbers);
+        println!("enter number");
+        match std::io::stdin()
+            .read_line(&mut input)
+        {
+            Ok(_) => {
+                let number = match input.trim_end().parse::<u8>() {
+                    Ok(x) => x,
+                    Err(_) => {
+                        println!("incorrect input number");
+                        continue;
+                    },
+                };
+
+                if number == EXIT_CODE { break; }
+
+                if choice_numbers.contains(&number) {
+                    println!("right choice");
+                } else {
+                    println!("wrong choice, try again");
+                }
+            },
+            Err(e) => {
+                println!("error {:?}", e);
+                continue;
+            },
+        }
+    }
     //0. Вывести текст сцены и варианты ответа для данной сцены (текст ребер);
     //1. Считать номер варианта ответа;
     //2. Найти номер варианта ответа в графе;
@@ -142,8 +178,7 @@ enum GraphMLNode {
 }
 
 fn find_node_attr_by_key(node: &Node<'_, '_>, attr_key: &str) -> Option<String> {
-    node
-        .attributes()
+    node.attributes()
         .iter()
         .find(|a| a.name().contains(attr_key))
         .and_then(|x| Some(x.value().into()))
