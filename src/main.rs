@@ -1,5 +1,7 @@
 use mdo::option::{bind, mzero, ret};
 use petgraph::graph::{NodeIndex, UnGraph};
+use petgraph::visit::Topo;
+use petgraph::Direction;
 use roxmltree::Node;
 use std::fs::File;
 use std::io::Read;
@@ -21,36 +23,51 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
     let mut input = String::new();
     let mut number: u8 = 0;
 
-    let choice_numbers = [1,2,3,4];
+    let choice_numbers = [1, 2, 3, 4];
+    let vertex = graph.raw_nodes().iter().take(1).next().unwrap();
+    let vertex_ix = graph.node_indices().take(1).next().unwrap();
 
+    println!("v: {:?}", graph[vertex_ix]);
+    println!(
+        "ed: {:?}",
+        graph
+            .edges_directed(vertex_ix, Direction::Outgoing)
+            .filter(|x| x.weight().source.id == graph[vertex_ix].id)
+            .fold(Vec::new(), |mut acc, x| {
+                acc.push(x.weight().target.clone());
+                acc
+            })
+    );
+    return;
     loop {
         input.clear();
-        println!("numbers for choice: {:?}", choice_numbers);
+        println!("Сцена: {}", vertex.weight.text);
+        println!("numbers for choice: {:?}", "");
         println!("enter number");
-        match std::io::stdin()
-            .read_line(&mut input)
-        {
+        match std::io::stdin().read_line(&mut input) {
             Ok(_) => {
-                let number = match input.trim_end().parse::<u8>() {
+                number = match input.trim_end().parse::<u8>() {
                     Ok(x) => x,
                     Err(_) => {
                         println!("incorrect input number");
                         continue;
-                    },
+                    }
                 };
 
-                if number == EXIT_CODE { break; }
+                if number == EXIT_CODE {
+                    break;
+                }
 
                 if choice_numbers.contains(&number) {
                     println!("right choice");
                 } else {
                     println!("wrong choice, try again");
                 }
-            },
+            }
             Err(e) => {
                 println!("error {:?}", e);
                 continue;
-            },
+            }
         }
     }
     //0. Вывести текст сцены и варианты ответа для данной сцены (текст ребер);
