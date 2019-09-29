@@ -28,16 +28,24 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
     let vertex_ix = graph.node_indices().take(1).next().unwrap();
 
     println!("v: {:?}", graph[vertex_ix]);
-    println!(
-        "ed: {:?}",
-        graph
+    let out_edges = graph
             .edges_directed(vertex_ix, Direction::Outgoing)
             .filter(|x| x.weight().source.id == graph[vertex_ix].id)
             .fold(Vec::new(), |mut acc, x| {
-                acc.push(x.weight().target.clone());
+                acc.push(x.weight());
                 acc
-            })
+            });
+    println!(
+        "ed count: {}, edges: {:?}",
+        out_edges.iter().count(),
+        out_edges,
     );
+    println!("Выберите действие: ");
+    let mut i = 1;
+    for edge in out_edges {
+        println!("{}. {}", i, format!("{} {}", edge.target.text.clone(), i.to_string()));
+        i = i + 1;
+    }
     return;
     loop {
         input.clear();
