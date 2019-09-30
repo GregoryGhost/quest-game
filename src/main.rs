@@ -1,6 +1,7 @@
-use mdo::option::{bind, mzero, ret};
+use mdo::option::bind;
+use petgraph::graph::EdgeReference;
 use petgraph::graph::{NodeIndex, UnGraph};
-use petgraph::visit::Topo;
+use petgraph::visit::EdgeRef;
 use petgraph::Direction;
 use roxmltree::Node;
 use std::fs::File;
@@ -21,43 +22,32 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
     const EXIT_CODE: u8 = 0;
 
     let mut input = String::new();
-    let mut number: u8 = 0;
+    let mut number: u8;
 
-    let choice_numbers = [1, 2, 3, 4];
-    let vertex = graph.raw_nodes().iter().take(1).next().unwrap();
-    let vertex_ix = graph.node_indices().take(1).next().unwrap();
+    let mut vertex_ix: NodeIndex;
+    vertex_ix = graph.node_indices().take(1).next().unwrap();
 
-    println!("v: {:?}", graph[vertex_ix]);
-    let out_edges = graph
-            .edges_directed(vertex_ix, Direction::Outgoing)
-            .filter(|x| x.weight().source.id == graph[vertex_ix].id)
-            .fold(Vec::new(), |mut acc, x| {
-                acc.push(x.weight());
-                acc
-            });
-    println!(
-        "ed count: {}, edges: {:?}",
-        out_edges.iter().count(),
-        out_edges,
-    );
-    println!("Выберите действие: ");
-    let mut i = 1;
-    for edge in out_edges {
-        println!("{}. {}", i, format!("{} {}", edge.target.text.clone(), i.to_string()));
-        i = i + 1;
-    }
-    return;
+    let mut out_edges: Vec<EdgeReference<'_, Edge>>;
+
     loop {
         input.clear();
-        println!("Сцена: {}", vertex.weight.text);
-        println!("numbers for choice: {:?}", "");
-        println!("enter number");
+        println!("Сцена: {}", graph[vertex_ix].text);
+        out_edges = graph
+            .edges_directed(vertex_ix, Direction::Outgoing)
+            .filter(|x| x.weight().source.id == graph[vertex_ix].id)
+            .collect();
+        println!("Выберите действие: ");
+        let mut i = 1;
+        for edge in &out_edges {
+            println!("{}. {}", i, edge.weight().target.text.clone()); //TODO: тут должен быть edge.weight().text
+            i += 1;
+        }
         match std::io::stdin().read_line(&mut input) {
             Ok(_) => {
                 number = match input.trim_end().parse::<u8>() {
                     Ok(x) => x,
                     Err(_) => {
-                        println!("incorrect input number");
+                        println!("Введен некорректный номер.");
                         continue;
                     }
                 };
@@ -66,10 +56,23 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
                     break;
                 }
 
-                if choice_numbers.contains(&number) {
-                    println!("right choice");
+                if 1 <= number && number <= i {
+                    println!("Получен верный номер варианта");
+                    println!("out edges count: {}", out_edges.len());
+                    println!("out edges: {:?}", out_edges);
+                    if let Some(found_vertex_ix) = out_edges.get((i - 1) as usize) {
+                        //TODO: не получается получить NodeIx
+                        //  потому, что все сформированные ребра содержат NodeIndex(0).
+                        vertex_ix = found_vertex_ix.target();
+                    } else {
+                        vertex_ix = out_edges.last().unwrap().target();
+                        println!("Не получилось получить вариант");
+                    }
+                    println!("vertex_ix {:?}", graph[vertex_ix]);
                 } else {
-                    println!("wrong choice, try again");
+                    println!(
+                        "Введен неверный номер варианта, попробуйте снова."
+                    );
                 }
             }
             Err(e) => {
