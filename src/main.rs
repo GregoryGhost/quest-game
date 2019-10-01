@@ -36,10 +36,18 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
             .edges_directed(vertex_ix, Direction::Outgoing)
             .filter(|x| x.weight().source.id == graph[vertex_ix].id)
             .collect();
+
+        if out_edges.is_empty() {
+            println!("Больше нету действий, выхожу...");
+            break;
+        }
+
         println!("Выберите действие: ");
         let mut i = 1;
         for edge in &out_edges {
-            println!("{}. {}", i, edge.weight().target.text.clone()); //TODO: тут должен быть edge.weight().text
+            //TODO: тут должен быть edge.weight().text,
+            //  вначале нужно изменить файл graphml в редакторе yEd
+            println!("{}. {}", i, edge.weight().target.text.clone());
             i += 1;
         }
         match std::io::stdin().read_line(&mut input) {
@@ -61,8 +69,6 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
                     println!("out edges count: {}", out_edges.len());
                     println!("out edges: {:?}", out_edges);
                     if let Some(found_vertex_ix) = out_edges.get((i - 1) as usize) {
-                        //TODO: не получается получить NodeIx
-                        //  потому, что все сформированные ребра содержат NodeIndex(0).
                         vertex_ix = found_vertex_ix.target();
                     } else {
                         vertex_ix = out_edges.last().unwrap().target();
@@ -81,12 +87,6 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
             }
         }
     }
-    //0. Вывести текст сцены и варианты ответа для данной сцены (текст ребер);
-    //1. Считать номер варианта ответа;
-    //2. Найти номер варианта ответа в графе;
-    //2.1 Получить по найденному варианту следующую сцену;
-    //2.2 повторить с шага 0.
-    //3. Если номер варианта ответа не считался, то попросить ввести правильный ответ пользователя.
 }
 
 fn load_file(path: &str) -> String {
@@ -212,6 +212,7 @@ fn find_node_attr_by_key(node: &Node<'_, '_>, attr_key: &str) -> Option<String> 
         .and_then(|x| Some(x.value().into()))
 }
 
+#[deprecated]
 fn get_node_by_id<'a>(nodes: &'a [GraphMLNode], search_node_id: &str) -> Option<&'a Vertex> {
     nodes
         .iter()
@@ -232,17 +233,21 @@ fn get_node_by_id<'a>(nodes: &'a [GraphMLNode], search_node_id: &str) -> Option<
 }
 
 fn format_graph<'a>(vertexes: Vec<GraphMLNode>, edges: Vec<GraphMLNode>) -> ResultGraphML<'a> {
+    use std::collections::HashMap;
+
     let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
+    let mut vertex_indexes: HashMap<&String, NodeIndex> = HashMap::new();
 
     for vertex in &vertexes {
         if let GraphMLNode::Node(v) = vertex {
-            graph.add_node(v.clone());
+            vertex_indexes.insert(&v.id, graph.add_node(v.clone()));
         }
     }
 
     for edge in &edges {
         if let GraphMLNode::Weight(e) = edge {
             let edge = Edge {
+                //TODO: эти вершины не нужны, убрать за ненадобностью, нужен только текст ребра
                 source: get_node_by_id(&vertexes, &e.source_id)
                     .expect("got vertex")
                     .clone(),
@@ -251,7 +256,14 @@ fn format_graph<'a>(vertexes: Vec<GraphMLNode>, edges: Vec<GraphMLNode>) -> Resu
                     .clone(),
                 text: e.text.clone(),
             };
-            graph.add_edge(NodeIndex::new(0), NodeIndex::new(0), edge);
+
+            let try_get_node_by_id = |id| *vertex_indexes.get(id).expect("got node by id");
+
+            graph.add_edge(
+                try_get_node_by_id(&e.source_id),
+                try_get_node_by_id(&e.target_id),
+                edge,
+            );
         }
     }
 
