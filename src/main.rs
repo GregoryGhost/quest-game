@@ -1,6 +1,6 @@
 use mdo::option::bind;
 use petgraph::graph::EdgeReference;
-use petgraph::graph::{NodeIndex, UnGraph};
+use petgraph::graph::{Graph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use petgraph::Direction;
 use roxmltree::Node;
@@ -11,21 +11,26 @@ use std::io::Read;
 extern crate mdo;
 
 fn main() {
-    const PATH: &str = "саси нло))) .graphml";
+    // const PATH: &str = "саси нло))) .graphml";
+    const PATH: &str = "scenes-choices.graphml";
 
     let graph = read_graphml(PATH).expect("failed read graphml");
 
     start_game(&graph);
 }
 
-fn start_game(graph: &UnGraph<Vertex, Edge>) {
-    const EXIT_CODE: u8 = 0;
+fn start_game(graph: &Graph<Vertex, Edge>) {
+    const EXIT_CODE: usize = 0;
 
     let mut input = String::new();
-    let mut number: u8;
+    let mut number: usize;
 
     let mut vertex_ix: NodeIndex;
-    vertex_ix = graph.node_indices().take(1).next().unwrap();
+    vertex_ix = graph
+        .node_indices()
+        .take(1)
+        .next()
+        .expect("failed get first vertex in graph");
 
     let mut out_edges: Vec<EdgeReference<'_, Edge>>;
 
@@ -34,7 +39,6 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
         println!("Сцена: {}", graph[vertex_ix].text);
         out_edges = graph
             .edges_directed(vertex_ix, Direction::Outgoing)
-            .filter(|x| x.weight().source.id == graph[vertex_ix].id)
             .collect();
 
         if out_edges.is_empty() {
@@ -45,15 +49,13 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
         println!("Выберите действие: ");
         let mut i = 1;
         for edge in &out_edges {
-            //TODO: тут должен быть edge.weight().text,
-            //  вначале нужно изменить файл graphml в редакторе yEd
-            println!("{}. {}", i, edge.weight().target.text.clone());
+            println!("{}. {}", i, edge.weight().text.clone());
             i += 1;
         }
         match std::io::stdin().read_line(&mut input) {
             Ok(_) => {
-                number = match input.trim_end().parse::<u8>() {
-                    Ok(x) => x,
+                number = match input.trim_end().parse::<usize>() {
+                    Ok(x) => x - 1,
                     Err(_) => {
                         println!("Введен некорректный номер.");
                         continue;
@@ -61,14 +63,19 @@ fn start_game(graph: &UnGraph<Vertex, Edge>) {
                 };
 
                 if number == EXIT_CODE {
+                    println!("Получен код выхода - выхожу...");
                     break;
                 }
 
                 if 1 <= number && number <= i {
-                    println!("Получен верный номер варианта");
+                    println!(
+                        "Получен верный номер варианта {}",
+                        number
+                    );
                     println!("out edges count: {}", out_edges.len());
                     println!("out edges: {:?}", out_edges);
-                    if let Some(found_vertex_ix) = out_edges.get((i - 1) as usize) {
+
+                    if let Some(found_vertex_ix) = out_edges.get(number) {
                         vertex_ix = found_vertex_ix.target();
                     } else {
                         vertex_ix = out_edges.last().unwrap().target();
@@ -177,7 +184,7 @@ fn find_xml_node_text<'a>(node: &Node<'a, 'a>, attr_key: &str) -> Option<&'a str
     }
 }
 
-type ResultGraphML<'a> = Result<UnGraph<Vertex, Edge>, &'static str>;
+type ResultGraphML<'a> = Result<Graph<Vertex, Edge>, &'static str>;
 
 #[derive(Debug, Clone)]
 struct Vertex {
@@ -187,8 +194,6 @@ struct Vertex {
 
 #[derive(Debug, Clone)]
 struct Edge {
-    source: Vertex,
-    target: Vertex,
     text: String,
 }
 
@@ -235,7 +240,7 @@ fn get_node_by_id<'a>(nodes: &'a [GraphMLNode], search_node_id: &str) -> Option<
 fn format_graph<'a>(vertexes: Vec<GraphMLNode>, edges: Vec<GraphMLNode>) -> ResultGraphML<'a> {
     use std::collections::HashMap;
 
-    let mut graph = UnGraph::<Vertex, Edge>::new_undirected();
+    let mut graph = Graph::<Vertex, Edge>::new();
     let mut vertex_indexes: HashMap<&String, NodeIndex> = HashMap::new();
 
     for vertex in &vertexes {
@@ -247,13 +252,6 @@ fn format_graph<'a>(vertexes: Vec<GraphMLNode>, edges: Vec<GraphMLNode>) -> Resu
     for edge in &edges {
         if let GraphMLNode::Weight(e) = edge {
             let edge = Edge {
-                //TODO: эти вершины не нужны, убрать за ненадобностью, нужен только текст ребра
-                source: get_node_by_id(&vertexes, &e.source_id)
-                    .expect("got vertex")
-                    .clone(),
-                target: get_node_by_id(&vertexes, &e.target_id)
-                    .expect("got vertex")
-                    .clone(),
                 text: e.text.clone(),
             };
 
