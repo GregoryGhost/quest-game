@@ -1,25 +1,37 @@
+use chrono::Utc;
+use log::{debug, error, trace};
 use mdo::option::bind;
 use petgraph::graph::EdgeReference;
 use petgraph::graph::{Graph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use petgraph::Direction;
 use roxmltree::Node;
+use simplelog::*;
 use std::fs::File;
+use std::io::stdin;
 use std::io::Read;
 
 #[macro_use]
 extern crate mdo;
 
 fn main() {
-    // const PATH: &str = "саси нло))) .graphml";
+    //TODO: нужно залогировать важные события в игре
+    CombinedLogger::init(vec![WriteLogger::new(
+        LevelFilter::Trace,
+        Config::default(),
+        File::create(format!("quest-game_{}.log", Utc::now())).unwrap(),
+    )])
+    .unwrap();
+
     const PATH: &str = "scenes-choices.graphml";
 
-    let graph = read_graphml(PATH).expect("failed read graphml");
+    let graph = read_graphml(PATH).expect("failed read graphml"); //TODO: здесь может быть можно переделать на mdo!
 
     start_game(&graph);
 }
 
 fn start_game(graph: &Graph<Vertex, Edge>) {
+    //TODO: заменить expect на match с error!(???)
     const EXIT_CODE: usize = 0;
 
     let mut input = String::new();
@@ -52,10 +64,10 @@ fn start_game(graph: &Graph<Vertex, Edge>) {
             println!("{}. {}", i, edge.weight().text.clone());
             i += 1;
         }
-        match std::io::stdin().read_line(&mut input) {
+        match stdin().read_line(&mut input) {
             Ok(_) => {
                 number = match input.trim_end().parse::<usize>() {
-                    Ok(x) => x - 1,
+                    Ok(x) => x,
                     Err(_) => {
                         println!("Введен некорректный номер.");
                         continue;
@@ -68,20 +80,19 @@ fn start_game(graph: &Graph<Vertex, Edge>) {
                 }
 
                 if 1 <= number && number <= i {
-                    println!(
+                    trace!(
                         "Получен верный номер варианта {}",
                         number
                     );
-                    println!("out edges count: {}", out_edges.len());
-                    println!("out edges: {:?}", out_edges);
+                    trace!("out edges count: {}", out_edges.len());
+                    trace!("out edges: {:?}", out_edges);
 
-                    if let Some(found_vertex_ix) = out_edges.get(number) {
+                    if let Some(found_vertex_ix) = out_edges.get(usize::from(number - 1)) {
                         vertex_ix = found_vertex_ix.target();
                     } else {
-                        vertex_ix = out_edges.last().unwrap().target();
                         println!("Не получилось получить вариант");
                     }
-                    println!("vertex_ix {:?}", graph[vertex_ix]);
+                    debug!("vertex_ix {:?}", graph[vertex_ix]);
                 } else {
                     println!(
                         "Введен неверный номер варианта, попробуйте снова."
@@ -89,7 +100,7 @@ fn start_game(graph: &Graph<Vertex, Edge>) {
                 }
             }
             Err(e) => {
-                println!("error {:?}", e);
+                error!("error {:?}", e);
                 continue;
             }
         }
@@ -215,26 +226,6 @@ fn find_node_attr_by_key(node: &Node<'_, '_>, attr_key: &str) -> Option<String> 
         .iter()
         .find(|a| a.name().contains(attr_key))
         .and_then(|x| Some(x.value().into()))
-}
-
-#[deprecated]
-fn get_node_by_id<'a>(nodes: &'a [GraphMLNode], search_node_id: &str) -> Option<&'a Vertex> {
-    nodes
-        .iter()
-        .find(|graph_ml_node| {
-            if let GraphMLNode::Node(vertex) = graph_ml_node {
-                vertex.id == (*search_node_id)
-            } else {
-                false
-            }
-        })
-        .and_then(|found_node| {
-            if let GraphMLNode::Node(vertex) = found_node {
-                Some(vertex)
-            } else {
-                None
-            }
-        })
 }
 
 fn format_graph<'a>(vertexes: Vec<GraphMLNode>, edges: Vec<GraphMLNode>) -> ResultGraphML<'a> {
