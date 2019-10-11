@@ -1,27 +1,24 @@
-use chrono::Utc;
 use log::{debug, error, trace};
+use logger::init_logger;
 use mdo::option::bind;
 use petgraph::graph::EdgeReference;
 use petgraph::graph::{Graph, NodeIndex};
 use petgraph::visit::EdgeRef;
 use petgraph::Direction;
 use roxmltree::Node;
-use simplelog::*;
 use std::fs::File;
 use std::io::stdin;
 use std::io::Read;
+
+#[path = "logger.rs"]
+pub mod logger;
 
 #[macro_use]
 extern crate mdo;
 
 fn main() {
     //TODO: нужно залогировать важные события в игре
-    CombinedLogger::init(vec![WriteLogger::new(
-        LevelFilter::Trace,
-        Config::default(),
-        File::create(format!("quest-game_{}.log", Utc::now())).unwrap(),
-    )])
-    .unwrap();
+    init_logger();
 
     const PATH: &str = "scenes-choices.graphml";
 
@@ -108,6 +105,8 @@ fn start_game(graph: &Graph<Vertex, Edge>) {
 }
 
 fn load_file(path: &str) -> String {
+    use std::path::Path;
+    println!("file exists: {}", Path::new(path).exists());
     let mut file = File::open(&path).unwrap();
     let mut text = String::new();
     file.read_to_string(&mut text).unwrap();
