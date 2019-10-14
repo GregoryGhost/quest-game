@@ -1,11 +1,8 @@
-use chrono::prelude::*;
 use chrono::Utc;
 use simplelog::*;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io;
-use std::io::stdin;
-use std::io::Read;
 use std::path::Path;
 
 fn log_file<P: AsRef<Path>>(path: P) -> io::Result<File> {

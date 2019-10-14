@@ -1,0 +1,12 @@
+[package]
+name = "parser_graphml"
+version = "0.1.0"
+authors = ["Gregory <KulakovGV@tomskasu.ru>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+mdo = "*"
+petgraph = "0.4.13"
+roxmltree = "0.7.1"

@@ -8,8 +8,8 @@ edition = "2018"
 
 [dependencies]
 mdo = "*"
-petgraph = "0.4.13"
 log = "0.4.8"
+petgraph = "0.4.13"
 simplelog = "^0.7.3"
-roxmltree = "0.7.1"
 chrono = "0.4"
+parser_graphml = { path = "../parser_graphml" }
