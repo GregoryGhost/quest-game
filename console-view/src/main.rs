@@ -13,13 +13,26 @@ use petgraph::visit::EdgeRef;
 use petgraph::Direction;
 use std::io::stdin;
 
+use std::fs::File;
+use std::io::Read;
+fn load_file(path: &str) -> String {
+    use std::path::Path;
+    println!("file exists: {}", Path::new(path).exists());
+    let mut file = File::open(&path).unwrap();
+    let mut text = String::new();
+    file.read_to_string(&mut text).unwrap();
+    text
+}
+
 fn main() {
     //TODO: нужно залогировать важные события в игре
     init_logger();
 
     const PATH: &str = "scenes-choices.graphml";
 
-    let graph = read_graphml(PATH).expect("failed read graphml"); //TODO: здесь может быть можно переделать на mdo!
+    let xml_doc = load_file(PATH);
+
+    let graph = read_graphml(&xml_doc).expect("failed read graphml"); //TODO: здесь может быть можно переделать на mdo!
 
     start_game(&graph);
 }

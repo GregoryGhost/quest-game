@@ -3,37 +3,31 @@ extern crate mdo;
 
 pub mod parser_graphml {
     use mdo::option::bind;
-    use petgraph::graph::EdgeReference;
     use petgraph::graph::{Graph, NodeIndex};
-    use petgraph::visit::EdgeRef;
-    use petgraph::Direction;
     use roxmltree::Node;
-    use std::fs::File;
-    use std::io::stdin;
-    use std::io::Read;
 
-    fn load_file(path: &str) -> String {
-        use std::path::Path;
-        println!("file exists: {}", Path::new(path).exists());
-        let mut file = File::open(&path).unwrap();
-        let mut text = String::new();
-        file.read_to_string(&mut text).unwrap();
-        text
+    pub fn read_graphml(xml_doc: &str) -> ResultGraphML {
+        let doc = match roxmltree::Document::parse(xml_doc) {
+            Ok(v) => v,
+            Err(_) => return Err("Error parse xml document"),
+        };
+
+        let (vertexes, edges): (Vec<GraphMLNode>, Vec<GraphMLNode>) =
+            prepare_graphml(doc).into_iter().partition(|x| match x {
+                GraphMLNode::Node(_) => true,
+                _ => false,
+            });
+
+        format_graph(vertexes, edges)
     }
 
-    pub fn read_graphml(path: &str) -> ResultGraphML {
+    fn prepare_graphml(doc: roxmltree::Document) -> Vec<GraphMLNode> {
         const NODE: &str = "node";
         const EDGE: &str = "edge";
         const NODE_TEXT_ATTR_KEY: &str = "d3";
         const EDGE_TEXT_ATTR_KEY: &str = "d10";
         const VERTEX_SOURCE_ATTR_KEY: &str = "source";
         const VERTEX_TARGET_ATTR_KEY: &str = "target";
-
-        let xml_doc = load_file(path);
-        let doc = match roxmltree::Document::parse(&xml_doc) {
-            Ok(v) => v,
-            Err(_) => return Err("Error parse xml document"),
-        };
 
         let nodes: Vec<GraphMLNode> = doc
             .root()
@@ -65,15 +59,9 @@ pub mod parser_graphml {
                     _ => acc,
                 }
             });
-
-        let (vertexes, edges): (Vec<GraphMLNode>, Vec<GraphMLNode>) =
-            nodes.into_iter().partition(|x| match x {
-                GraphMLNode::Node(_) => true,
-                _ => false,
-            });
-
-        format_graph(vertexes, edges)
+        nodes
     }
+
 
     fn find_xml_node_text<'a>(node: &Node<'a, 'a>, attr_key: &str) -> Option<&'a str> {
         const TAG_DATA: &str = "data";
