@@ -9,7 +9,7 @@ pub mod parser_graphml {
     pub fn read_graphml(xml_doc: &str) -> ResultGraphML {
         let doc = match roxmltree::Document::parse(xml_doc) {
             Ok(v) => v,
-            Err(_) => return Err("Error parse xml document"),
+            Err(error) => return Err(Error::ParseXMLDocument(error)),
         };
 
         let (vertexes, edges): (Vec<GraphMLNode>, Vec<GraphMLNode>) =
@@ -62,7 +62,6 @@ pub mod parser_graphml {
         nodes
     }
 
-
     fn find_xml_node_text<'a>(node: &Node<'a, 'a>, attr_key: &str) -> Option<&'a str> {
         const TAG_DATA: &str = "data";
         const ATTR_TAG_KEY: &str = "key";
@@ -90,7 +89,17 @@ pub mod parser_graphml {
         }
     }
 
-    pub type ResultGraphML<'a> = Result<Graph<Vertex, Edge>, &'static str>;
+    pub type ResultGraphML<'a> = Result<Graph<Vertex, Edge>, Error>;
+
+    pub enum Error {
+        ParseXMLDocument(roxmltree::Error),
+        PrepareGraphml(),
+        FormatGraph(ErrorFormatGraph),
+    }
+
+    pub enum ErrorFormatGraph {
+        NotFoundNodeById(String),
+    }
 
     #[derive(Debug, Clone)]
     pub struct Vertex {
@@ -141,11 +150,17 @@ pub mod parser_graphml {
                     text: e.text.clone(),
                 };
 
-                let try_get_node_by_id = |id| *vertex_indexes.get(id).expect("got node by id");
-
+                let try_get_node_by_id = |id: &String| match vertex_indexes.get(id) {
+                    Some(node_index) => Ok(*node_index),
+                    None => {
+                        return Err(Error::FormatGraph(ErrorFormatGraph::NotFoundNodeById(
+                            id.to_string(),
+                        )))
+                    }
+                };
                 graph.add_edge(
-                    try_get_node_by_id(&e.source_id),
-                    try_get_node_by_id(&e.target_id),
+                    try_get_node_by_id(&e.source_id)?,
+                    try_get_node_by_id(&e.target_id)?,
                     edge,
                 );
             }
