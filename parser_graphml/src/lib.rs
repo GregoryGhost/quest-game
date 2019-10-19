@@ -13,7 +13,7 @@ pub mod parser_graphml {
         };
 
         let (vertexes, edges): (Vec<GraphMLNode>, Vec<GraphMLNode>) =
-            prepare_graphml(doc).into_iter().partition(|x| match x {
+            prepare_graphml(doc)?.into_iter().partition(|x| match x {
                 GraphMLNode::Node(_) => true,
                 _ => false,
             });
@@ -21,7 +21,7 @@ pub mod parser_graphml {
         format_graph(vertexes, edges)
     }
 
-    fn prepare_graphml(doc: roxmltree::Document) -> Vec<GraphMLNode> {
+    fn prepare_graphml(doc: roxmltree::Document) -> Result<Vec<GraphMLNode>, Error> {
         const NODE: &str = "node";
         const EDGE: &str = "edge";
         const NODE_TEXT_ATTR_KEY: &str = "d3";
@@ -29,52 +29,47 @@ pub mod parser_graphml {
         const VERTEX_SOURCE_ATTR_KEY: &str = "source";
         const VERTEX_TARGET_ATTR_KEY: &str = "target";
 
-        let nodes: Vec<GraphMLNode> = doc
-            .root()
-            .descendants()
-            .filter(|node| node.is_element())
-            .fold(Vec::new(), |mut acc, node| {
-                match node.tag_name().name().trim() {
-                    NODE => {
-                        acc.push(GraphMLNode::Node(Vertex {
-                            id: find_node_attr_by_key(&node, "id").expect("find vertex id"),
-                            text: find_xml_node_text(&node, NODE_TEXT_ATTR_KEY)
-                                .expect(format!("found node text {:?}", node).as_ref())
-                                .to_string(),
-                        }));
-                        acc
-                    }
-                    EDGE => {
-                        acc.push(GraphMLNode::Weight(XmlEdge {
-                            source_id: find_node_attr_by_key(&node, VERTEX_SOURCE_ATTR_KEY)
-                                .expect("got source id"),
-                            target_id: find_node_attr_by_key(&node, VERTEX_TARGET_ATTR_KEY)
-                                .expect("got target id"),
-                            text: find_xml_node_text(&node, EDGE_TEXT_ATTR_KEY)
-                                .map_or(Some("".to_string()), |x| Some(x.to_string()))
-                                .unwrap(),
-                        }));
-                        acc
-                    }
-                    _ => acc,
+        let filtered_nodes = doc.root().descendants().filter(|node| node.is_element());
+
+        let mut acc: Vec<GraphMLNode> = Vec::new();
+        for node in filtered_nodes {
+            match node.tag_name().name().trim() {
+                NODE => {
+                    acc.push(GraphMLNode::Node(Vertex {
+                        id: find_node_attr_by_key(&node, "id")?,
+                        text: find_xml_node_text(&node, NODE_TEXT_ATTR_KEY)?.to_string(),
+                    }));
                 }
-            });
-        nodes
+                EDGE => {
+                    acc.push(GraphMLNode::Weight(XmlEdge {
+                        source_id: find_node_attr_by_key(&node, VERTEX_SOURCE_ATTR_KEY)?,
+                        target_id: find_node_attr_by_key(&node, VERTEX_TARGET_ATTR_KEY)?,
+                        text: find_xml_node_text(&node, EDGE_TEXT_ATTR_KEY)
+                            .unwrap_or("")
+                            .to_string(),
+                    }));
+                }
+                _ => ()
+            }
+        }
+
+        Ok(acc)
     }
 
-    fn find_xml_node_text<'a>(node: &Node<'a, 'a>, attr_key: &str) -> Option<&'a str> {
+    fn find_xml_node_text<'a>(node: &Node<'a, 'a>, attr_key: &str) -> Result<&'a str, Error> {
         const TAG_DATA: &str = "data";
         const ATTR_TAG_KEY: &str = "key";
         const TAG_LIST: &str = "List";
         const TAG_LABEL: &str = "Label";
         const TAG_LABEL_TEXT: &str = "Label.Text";
 
-        mdo! {
+        let result = mdo! {
             data =<< node.children()
                 .find(|x| {
-                    let found_key = find_node_attr_by_key(x, ATTR_TAG_KEY)
-                        .and_then(|x| if x == attr_key { Some(true) } else { None })
-                        .is_some();
+                    let found_key = match find_node_attr_by_key(x, ATTR_TAG_KEY) {
+                        Ok(x) => x == attr_key,
+                        _ => false,
+                    };
 
                     x.tag_name().name() == TAG_DATA && found_key
                 });
@@ -86,15 +81,23 @@ pub mod parser_graphml {
                 .find(|x| x.tag_name().name() == TAG_LABEL_TEXT);
 
             ret lbl_txt.text()
-        }
+        };
+
+        result.ok_or(Error::PrepareGraphml(
+            ErrorPrepareGraphML::NotFoundAttrByKey(attr_key.to_string()),
+        ))
     }
 
     pub type ResultGraphML<'a> = Result<Graph<Vertex, Edge>, Error>;
 
     pub enum Error {
         ParseXMLDocument(roxmltree::Error),
-        PrepareGraphml(),
+        PrepareGraphml(ErrorPrepareGraphML),
         FormatGraph(ErrorFormatGraph),
+    }
+
+    pub enum ErrorPrepareGraphML {
+        NotFoundAttrByKey(String),
     }
 
     pub enum ErrorFormatGraph {
@@ -125,11 +128,14 @@ pub mod parser_graphml {
         Node(Vertex),
     }
 
-    fn find_node_attr_by_key(node: &Node<'_, '_>, attr_key: &str) -> Option<String> {
+    fn find_node_attr_by_key(node: &Node<'_, '_>, attr_key: &str) -> Result<String, Error> {
         node.attributes()
             .iter()
             .find(|a| a.name().contains(attr_key))
-            .and_then(|x| Some(x.value().into()))
+            .and_then(|a| Some(a.value().into()))
+            .ok_or(Error::PrepareGraphml(
+                ErrorPrepareGraphML::NotFoundAttrByKey(attr_key.to_string()),
+            ))
     }
 
     fn format_graph<'a>(vertexes: Vec<GraphMLNode>, edges: Vec<GraphMLNode>) -> ResultGraphML<'a> {
