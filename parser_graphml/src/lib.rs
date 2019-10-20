@@ -1,10 +1,19 @@
 #[macro_use]
 extern crate mdo;
 
+#[path = "errors.rs"]
+pub mod errors;
+
+#[path = "types.rs"]
+pub mod types;
+
 pub mod parser_graphml {
     use mdo::option::bind;
     use petgraph::graph::{Graph, NodeIndex};
     use roxmltree::Node;
+
+    use crate::errors::*;
+    use crate::types::*;
 
     pub fn read_graphml(xml_doc: &str) -> ResultGraphML {
         let doc = match roxmltree::Document::parse(xml_doc) {
@@ -19,6 +28,19 @@ pub mod parser_graphml {
             });
 
         format_graph(vertexes, edges)
+    }
+
+    #[derive(Debug)]
+    struct XmlEdge {
+        source_id: String,
+        target_id: String,
+        text: String,
+    }
+
+    #[derive(Debug)]
+    enum GraphMLNode {
+        Weight(XmlEdge),
+        Node(Vertex),
     }
 
     fn prepare_graphml(doc: roxmltree::Document) -> Result<Vec<GraphMLNode>, Error> {
@@ -49,7 +71,7 @@ pub mod parser_graphml {
                             .to_string(),
                     }));
                 }
-                _ => ()
+                _ => (),
             }
         }
 
@@ -86,49 +108,6 @@ pub mod parser_graphml {
         result.ok_or(Error::PrepareGraphml(
             ErrorPrepareGraphML::NotFoundAttrByKey(attr_key.to_string()),
         ))
-    }
-
-    pub type ResultGraphML<'a> = Result<Graph<Vertex, Edge>, Error>;
-
-    #[derive(Debug)]
-    pub enum Error {
-        ParseXMLDocument(roxmltree::Error),
-        PrepareGraphml(ErrorPrepareGraphML),
-        FormatGraph(ErrorFormatGraph),
-    }
-
-    #[derive(Debug)]
-    pub enum ErrorPrepareGraphML {
-        NotFoundAttrByKey(String),
-    }
-
-    #[derive(Debug)]
-    pub enum ErrorFormatGraph {
-        NotFoundNodeById(String),
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct Vertex {
-        pub id: String,
-        pub text: String,
-    }
-
-    #[derive(Debug, Clone)]
-    pub struct Edge {
-        pub text: String,
-    }
-
-    #[derive(Debug)]
-    struct XmlEdge {
-        source_id: String,
-        target_id: String,
-        text: String,
-    }
-
-    #[derive(Debug)]
-    enum GraphMLNode {
-        Weight(XmlEdge),
-        Node(Vertex),
     }
 
     fn find_node_attr_by_key(node: &Node<'_, '_>, attr_key: &str) -> Result<String, Error> {
