@@ -5,7 +5,7 @@ use logger::init_logger;
 pub mod logger;
 
 extern crate parser_graphml;
-use parser_graphml::parser_graphml::{read_graphml, Edge, Vertex};
+use parser_graphml::parser::{read_graphml, Vertex, Edge};
 
 use petgraph::graph::EdgeReference;
 use petgraph::graph::{Graph, NodeIndex};
