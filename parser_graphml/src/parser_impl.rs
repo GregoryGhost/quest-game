@@ -5,6 +5,11 @@ use roxmltree::Node;
 use crate::errors::*;
 use crate::types::*;
 
+/// Распарсить граф из GraphML формата.
+///
+/// # Errors
+///
+/// Если парсинг провалился, то возвращает ошибки парсинга [`errors::Error`].
 pub fn read_graphml(xml_doc: &str) -> ResultGraphML {
     let doc = match roxmltree::Document::parse(xml_doc) {
         Ok(v) => v,

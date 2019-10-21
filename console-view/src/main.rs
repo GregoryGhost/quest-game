@@ -15,6 +15,8 @@ use std::io::stdin;
 
 use std::fs::File;
 use std::io::Read;
+
+
 fn load_file(path: &str) -> String {
     use std::path::Path;
     println!("file exists: {}", Path::new(path).exists());
