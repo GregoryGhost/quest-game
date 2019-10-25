@@ -4,5 +4,5 @@
 pub mod counter;
 
 fn main() {
-    yew::start_app::<counter::Model>();
+    yew::start_app::<counter::SceneModel>();
 }
