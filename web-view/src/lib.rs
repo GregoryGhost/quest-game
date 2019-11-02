@@ -60,7 +60,7 @@ impl Component for SceneModel {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             QuestMsg::Choice(number) => {
-                if let Some(found_vertex_ix) = self.get_choices().get(number - 1) {
+                if let Some(found_vertex_ix) = self.get_choices().get(number) {
                     self.current_scene_id = found_vertex_ix.target();
                     self.description = self.graph[self.current_scene_id].text.clone();
                 } else {
