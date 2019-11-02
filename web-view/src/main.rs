@@ -1,12 +1,10 @@
-#![recursion_limit = "128"]
+#![recursion_limit = "256"]
 
-#[path = "./lib.rs"]
-pub mod counter;
-
-#[path = "./file_upload_sample.rs"]
-pub mod file_upload;
+//TODO: переместить в этот файл RootView
+//TODO: выделить папку для компонентов, и для вьюх
+#[path = "./root_view.rs"]
+pub mod root;
 
 fn main() {
-    // yew::start_app::<counter::SceneModel>();
-    yew::start_app::<file_upload::Model>();
+    yew::start_app::<root::RootView>();
 }
