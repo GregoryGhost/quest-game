@@ -11,6 +11,8 @@ pub mod quest_game;
 use file_upload::FileModel;
 use quest_game::SceneModel;
 
+use parser_graphml::parser::*;
+
 pub struct RootView {
     loaded_graph_file: Option<String>,
 }
@@ -42,13 +44,23 @@ impl Component for RootView {
 impl Renderable<RootView> for RootView {
     fn view(&self) -> Html<Self> {
         if let Some(graph_file) = &self.loaded_graph_file {
-            //TODO: здесь также должна быть парсинг и обработка ошибок парсинга графа
-            //  при этом нужно уведомить пользователя о том, что файл не был распарсен и вы вести в лог подробную ошибку.
-            //TODO: компонент игровой сцены должен принимать распарсенный граф и уже с ним работать.
-            html! {
-                <div>
-                    <SceneModel graph=graph_file />
-                </div>
+
+            match read_graphml(&graph_file) {
+                Ok(graph) => {
+                    html! {
+                        <div>
+                            <SceneModel graph=graph />
+                        </div>
+                    }
+                },
+                Err(e) => {
+                    const MSG: &str =
+                        "Ошибка парсинга графа из GraphML формата";
+                    //TODO: писать еще ошибку в лог.
+                    html! {
+                        <div class="error">{MSG}</div>
+                    }
+                }
             }
         } else {
             html! {
