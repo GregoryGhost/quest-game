@@ -1,7 +1,9 @@
+use yew::prelude::{
+    html, Callback, ChangeData, Component, ComponentLink, Html, Properties, Renderable,
+    ShouldRender,
+};
 use yew::services::reader::{File, FileChunk, FileData, ReaderService, ReaderTask};
 use yew::services::ConsoleService;
-use yew::prelude::{html, Callback, ChangeData, Component, ComponentLink, Html, Properties, Renderable, ShouldRender};
-
 
 pub struct FileModel {
     link: ComponentLink<FileModel>,
@@ -43,14 +45,16 @@ impl Component for FileModel {
             by_chunks: false,
             console: ConsoleService::new(),
             title: props.title,
-            onloaded: props.onloaded
+            onloaded: props.onloaded,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             FileMsg::Loaded(file) => {
-                let info = std::str::from_utf8(&file.content).expect("got string from file").to_string();
+                let info = std::str::from_utf8(&file.content)
+                    .expect("got string from file")
+                    .to_string();
                 self.files.push(info.clone());
                 self.onloaded.emit(info.clone());
             }
@@ -81,7 +85,7 @@ impl Component for FileModel {
 }
 
 impl Renderable<FileModel> for FileModel {
-       fn view(&self) -> Html<Self> {
+    fn view(&self) -> Html<Self> {
         let flag = self.by_chunks;
         html! {
             <div>
@@ -114,4 +118,3 @@ impl FileModel {
         }
     }
 }
-

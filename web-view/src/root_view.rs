@@ -1,6 +1,6 @@
 use yew::services::reader::{File, FileChunk, FileData, ReaderService, ReaderTask};
 use yew::services::ConsoleService;
-use yew::{html, ChangeData, Component, ComponentLink, Html, ShouldRender, Renderable};
+use yew::{html, ChangeData, Component, ComponentLink, Html, Renderable, ShouldRender};
 
 #[path = "./file_upload_sample.rs"]
 pub mod file_upload;
@@ -8,15 +8,15 @@ pub mod file_upload;
 #[path = "./lib.rs"]
 pub mod quest_game;
 
-use quest_game::{SceneModel};
-use file_upload::{FileModel};
+use file_upload::FileModel;
+use quest_game::SceneModel;
 
 pub struct RootView {
     loaded_graph_file: Option<String>,
 }
 
 pub enum RootMsg {
-    LoadGraph(String)
+    LoadGraph(String),
 }
 
 impl Component for RootView {
@@ -25,7 +25,7 @@ impl Component for RootView {
 
     fn create(_: Self::Properties, _: ComponentLink<Self>) -> Self {
         RootView {
-            loaded_graph_file: None
+            loaded_graph_file: None,
         }
     }
 
@@ -42,9 +42,12 @@ impl Component for RootView {
 impl Renderable<RootView> for RootView {
     fn view(&self) -> Html<Self> {
         if let Some(graph_file) = &self.loaded_graph_file {
+            //TODO: здесь также должна быть парсинг и обработка ошибок парсинга графа
+            //  при этом нужно уведомить пользователя о том, что файл не был распарсен и вы вести в лог подробную ошибку.
+            //TODO: компонент игровой сцены должен принимать распарсенный граф и уже с ним работать.
             html! {
                 <div>
-                    <SceneModel graph_file=graph_file />
+                    <SceneModel graph=graph_file />
                 </div>
             }
         } else {
