@@ -50,13 +50,9 @@ impl Component for FileModel {
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             FileMsg::Loaded(file) => {
-                self.console.log(&format!(
-                    "loaded file {}",
-                    std::str::from_utf8(&file.content).expect("got string from file"),
-                ));
-                let info = format!("file: {:?}", file);
-                self.files.push(info);
-                self.onloaded.emit("kek".to_string());
+                let info = std::str::from_utf8(&file.content).expect("got string from file").to_string();
+                self.files.push(info.clone());
+                self.onloaded.emit(info.clone());
             }
             FileMsg::Chunk(chunk) => {
                 let info = format!("chunk: {:?}", chunk);
