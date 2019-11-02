@@ -14,6 +14,7 @@ pub struct FileModel {
     by_chunks: bool,
     onloaded: Callback<String>,
     title: &'static str,
+    error: Option<&'static str>,
 }
 
 #[derive(PartialEq, Properties)]
@@ -46,17 +47,25 @@ impl Component for FileModel {
             console: ConsoleService::new(),
             title: props.title,
             onloaded: props.onloaded,
+            error: None
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
             FileMsg::Loaded(file) => {
-                let info = std::str::from_utf8(&file.content)
-                    .expect("got string from file")
-                    .to_string();
-                self.files.push(info.clone());
-                self.onloaded.emit(info.clone());
+                match std::str::from_utf8(&file.content) {
+                    Ok(info) => {
+                        let data = info.to_owned();
+                        self.files.push(data.clone());
+                        self.onloaded.emit(data.clone());
+                    }
+                    Err(e) => {
+                        const MSG: &str = "Не удалось прочитать выбранный файл";
+                        self.error = Some(MSG);
+                        self.console.log(&format!("Msg: {}. Panic: {}", MSG, e));
+                    }
+                }
             }
             FileMsg::Chunk(chunk) => {
                 let info = format!("chunk: {:?}", chunk);
@@ -88,6 +97,7 @@ impl Renderable<FileModel> for FileModel {
     fn view(&self) -> Html<Self> {
         let flag = self.by_chunks;
         html! {
+            //TODO: добавить уведомление провальности загрузки файла.
             <div>
                 <div>
                     <input type="file" onchange=|value| {
@@ -98,6 +108,7 @@ impl Renderable<FileModel> for FileModel {
                             FileMsg::Files(result, flag)
                         } style="display:none" id="file_input"/>
                     <label for="file_input">{ self.title }</label>
+                    <div class="error">{ if let Some(error) = self.error {error} else { "" } }</div>
                 </div>
                 <div>
                     <label>{ "By chunks" }</label>

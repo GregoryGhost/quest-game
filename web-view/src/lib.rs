@@ -64,7 +64,7 @@ impl Component for SceneModel {
                     self.current_scene_id = found_vertex_ix.target();
                     self.description = self.graph[self.current_scene_id].text.clone();
                 } else {
-                    println!("Не получилось получить вариант");
+                    panic!("Не удалось получить вариант по номеру: {:?}", number);
                 }
             }
         }
