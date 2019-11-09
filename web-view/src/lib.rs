@@ -81,9 +81,9 @@ impl Renderable<SceneModel> for SceneModel {
         let view_message = |i: usize| {
             let msg = choices[i].weight().text.clone();
             html! {
-                <button class="quest-game__scene-choice" onclick=|_| QuestMsg::Choice(i)>
+                <div class="quest-game__scene-choice" onclick=|_| QuestMsg::Choice(i)>
                     { format!("{}.{}", i+1, msg) }
-                </button>
+                </div>
             }
         };
 
