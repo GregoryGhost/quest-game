@@ -47,26 +47,24 @@ impl Component for FileModel {
             console: ConsoleService::new(),
             title: props.title,
             onloaded: props.onloaded,
-            error: None
+            error: None,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            FileMsg::Loaded(file) => {
-                match std::str::from_utf8(&file.content) {
-                    Ok(info) => {
-                        let data = info.to_owned();
-                        self.files.push(data.clone());
-                        self.onloaded.emit(data.clone());
-                    }
-                    Err(e) => {
-                        const MSG: &str = "Не удалось прочитать выбранный файл";
-                        self.error = Some(MSG);
-                        self.console.log(&format!("Msg: {}. Panic: {}", MSG, e));
-                    }
+            FileMsg::Loaded(file) => match std::str::from_utf8(&file.content) {
+                Ok(info) => {
+                    let data = info.to_owned();
+                    self.files.push(data.clone());
+                    self.onloaded.emit(data.clone());
                 }
-            }
+                Err(e) => {
+                    const MSG: &str = "Не удалось прочитать выбранный файл";
+                    self.error = Some(MSG);
+                    self.console.log(&format!("Msg: {}. Panic: {}", MSG, e));
+                }
+            },
             FileMsg::Chunk(chunk) => {
                 let info = format!("chunk: {:?}", chunk);
                 self.files.push(info);

@@ -44,7 +44,6 @@ impl Component for RootView {
 impl Renderable<RootView> for RootView {
     fn view(&self) -> Html<Self> {
         if let Some(graph_file) = &self.loaded_graph_file {
-
             match read_graphml(&graph_file) {
                 Ok(graph) => {
                     html! {
@@ -52,10 +51,9 @@ impl Renderable<RootView> for RootView {
                             <SceneModel graph=graph />
                         </div>
                     }
-                },
+                }
                 Err(e) => {
-                    const MSG: &str =
-                        "Ошибка парсинга графа из GraphML формата";
+                    const MSG: &str = "Ошибка парсинга графа из GraphML формата";
                     //TODO: писать еще ошибку в лог.
                     html! {
                         <div class="error">{MSG}</div>

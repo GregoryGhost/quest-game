@@ -27,8 +27,7 @@ impl SceneModel {
         let first_scene: NodeIndex = match graph.node_indices().take(1).next() {
             Some(vertex) => vertex,
             None => {
-                const MSG: &str =
-                    "Не удалось получить первую вершину в графе";
+                const MSG: &str = "Не удалось получить первую вершину в графе";
                 console.log(MSG);
                 panic!(MSG);
             }

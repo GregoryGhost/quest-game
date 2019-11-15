@@ -4,12 +4,15 @@ version = "0.1.0"
 authors = ["Gregory <lobster287@gmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-yew = "0.9.2"
+#yew = "0.9.2"
 parser_graphml = { path = "../parser_graphml" }
 petgraph = "0.4.13"
 stdweb = "0.4.20"
+#wasm-bindgen = "0.2.50"
+wasm-bindgen = "=0.2.42"
+web_logger = "0.2"
+yew = "0.7"

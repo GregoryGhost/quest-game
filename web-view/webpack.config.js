@@ -20,7 +20,7 @@ module.exports = (env, argv) => {
     module: {
       rules: [
         {
-          test: /\.s[ac]ss$/i,
+          test: /\.s(a|c)ss$/,
           use: [
             // fallback to style-loader in development
             process.env.NODE_ENV !== 'production'
