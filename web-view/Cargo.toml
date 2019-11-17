@@ -1,18 +1,18 @@
+#TOOD: добавить пребилд файл build.rs в него прописать чтобы конвертировались scss файлы
+# в css файла с помощью https://github.com/compass-rs/sass-rs
 [package]
 name = "web-view"
 version = "0.1.0"
 authors = ["Gregory <lobster287@gmail.com>"]
 edition = "2018"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
+build = "build.rs"
 
 [dependencies]
-#yew = "0.9.2"
+yew = "0.9.2"
 parser_graphml = { path = "../parser_graphml" }
 petgraph = "0.4.13"
 stdweb = "0.4.20"
-#wasm-bindgen = "0.2.50"
-wasm-bindgen = "=0.2.42"
 web_logger = "0.2"
-yew = "0.7"
+
+[build-dependencies]
+sass-rs = "0.2.2"

@@ -27,7 +27,8 @@ impl SceneModel {
         let first_scene: NodeIndex = match graph.node_indices().take(1).next() {
             Some(vertex) => vertex,
             None => {
-                const MSG: &str = "Не удалось получить первую вершину в графе";
+                const MSG: &str =
+                    "Не удалось получить первую вершину в графе";
                 console.log(MSG);
                 panic!(MSG);
             }
@@ -63,7 +64,10 @@ impl Component for SceneModel {
                     self.current_scene_id = found_vertex_ix.target();
                     self.description = self.graph[self.current_scene_id].text.clone();
                 } else {
-                    let msg = &format!("Не удалось получить вариант по номеру: {:?}", number);
+                    let msg = &format!(
+                        "Не удалось получить вариант по номеру: {:?}",
+                        number
+                    );
                     self.console.log(msg);
                     panic!(msg.clone());
                 }
@@ -80,15 +84,15 @@ impl Renderable<SceneModel> for SceneModel {
         let view_message = |i: usize| {
             let msg = choices[i].weight().text.clone();
             html! {
-                <div class="quest-game__scene-choice" onclick=|_| QuestMsg::Choice(i)>
+                <button class="quest-game__scene-choice btn" augmented-ui="tl-clip br-clip exe" onclick=|_| QuestMsg::Choice(i)>
                     { format!("{}.{}", i+1, msg) }
-                </div>
+                </button>
             }
         };
 
         html! {
             <div class="quest-game">
-                <div class="quest-game__scene-description">{self.description.clone()}</div>
+                <div class="quest-game__scene-description" augmented-ui="tl-clip t-clip tr-clip r-clip br-clip b-clip bl-clip l-clip exe">{self.description.clone()}</div>
                 <div class="quest-game__scene-choices">
                         { for (0..choices.len()).map(view_message) }
                 </div>

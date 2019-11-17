@@ -53,7 +53,8 @@ impl Renderable<RootView> for RootView {
                     }
                 }
                 Err(e) => {
-                    const MSG: &str = "Ошибка парсинга графа из GraphML формата";
+                    const MSG: &str =
+                        "Ошибка парсинга графа из GraphML формата";
                     //TODO: писать еще ошибку в лог.
                     html! {
                         <div class="error">{MSG}</div>
