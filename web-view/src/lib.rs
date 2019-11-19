@@ -27,8 +27,7 @@ impl SceneModel {
         let first_scene: NodeIndex = match graph.node_indices().take(1).next() {
             Some(vertex) => vertex,
             None => {
-                const MSG: &str =
-                    "Не удалось получить первую вершину в графе";
+                const MSG: &str = "Не удалось получить первую вершину в графе";
                 console.log(MSG);
                 panic!(MSG);
             }
@@ -64,10 +63,7 @@ impl Component for SceneModel {
                     self.current_scene_id = found_vertex_ix.target();
                     self.description = self.graph[self.current_scene_id].text.clone();
                 } else {
-                    let msg = &format!(
-                        "Не удалось получить вариант по номеру: {:?}",
-                        number
-                    );
+                    let msg = &format!("Не удалось получить вариант по номеру: {:?}", number);
                     self.console.log(msg);
                     panic!(msg.clone());
                 }

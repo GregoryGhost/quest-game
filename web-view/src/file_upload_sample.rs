@@ -60,8 +60,7 @@ impl Component for FileModel {
                     self.onloaded.emit(data.clone());
                 }
                 Err(e) => {
-                    const MSG: &str =
-                        "Не удалось прочитать выбранный файл";
+                    const MSG: &str = "Не удалось прочитать выбранный файл";
                     self.error = Some(MSG);
                     self.console.log(&format!("Msg: {}. Panic: {}", MSG, e));
                 }
