@@ -1,6 +1,94 @@
-.kek {
-    font-size: 1em;
-    &_chubureck {
-        color: red;
-    }
+body {
+    background-color: #20262e;
 }
+
+.quest-game {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 auto;
+  flex-direction: column;
+  justify-content: space-around;
+  align-content: space-between;
+  align-items: center;
+  color: #dfd9d1;
+  width: 90%;
+  font-size: 1.25em;
+  
+  &__scene{
+      &-description {
+        text-indent: 1em;
+        text-align: justify;
+        width: 80%;
+        padding: 2em; /* mind the gap */
+        --aug-border: 10px;
+        --aug-border-bg: #191970;
+        --aug-inset-bg: #1a1e25;
+      }
+
+      &-choices {
+        width: 70%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: stretch;
+      }
+
+      &-choice {
+        padding: 10px; /* mind the gap */
+        margin-top: 1em;
+        --aug-inset: 5px;
+        --aug-border: 2px;
+        --aug-border-bg: #191970;
+        --aug-inset-bg: #1a1e25;
+      } 
+  }
+}
+
+button {
+  padding: 0;
+  border: none;
+  font: inherit;
+  color: inherit;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+ .btn {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: stretch;
+    width: 100%;
+    text-decoration: none;
+ 
+  
+    /* невидимая граница (нужна для цвета при наведении/фокусе) */
+    border: solid 1px transparent;
+    border-radius: 4px;
+  
+    padding: 0.5em 1em;
+
+    &:active {
+        transform: translateY(1px);
+        filter: saturate(150%);
+      }
+
+    &:hover {
+        --aug-border-bg: #39ff14;
+      }
+
+    //   Firefox: сбрасываем внутреннюю границу при фокусе
+    &::-moz-focus-inner {
+        border: none;
+      }
+    &:focus {
+        outline: none;
+        box-shadow: 13px 13px 10px -4px rgba(25,25,112,0.64),
+          13px 13px 11px -4px rgba(25,25,112,0.64);;
+      }
+    
+    //   сокрытие фокусных стилей, если используется не клавиатура
+      .js-focus-visible &:focus:not(.focus-visible) {
+        box-shadow: none;
+      }
+  }
