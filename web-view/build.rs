@@ -1,5 +1,5 @@
 use std::env;
-use std::fs::{read_dir, File, OpenOptions};
+use std::fs::{read_dir, File, OpenOptions, remove_file};
 use std::io;
 use std::io::Write;
 use std::path::Path;
@@ -23,6 +23,11 @@ fn main() {
     let files = read_dir(static_dir.clone()).expect("Not found folder of static web files");
 
     let output_css_path = &format!("{}/{}", static_dir, OUTPUT_CSS);
+
+    if Path::new(output_css_path).exists() {
+        remove_file(output_css_path);
+    }
+
     let mut css_file = append_to_file(output_css_path).expect("Not found output css file");
 
     files
@@ -34,8 +39,7 @@ fn main() {
                 Options::default(),
             )
             .expect("Compile scss to css");
-            //TODO: нужно добавить проверку для целевого css файла, что
-            //  если данные в нем уже есть чтобы не писать лишний раз
+
             css_file
                 .write(css_data.as_bytes())
                 .expect("Must been write translated css to file");
