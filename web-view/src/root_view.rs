@@ -18,7 +18,7 @@ pub struct RootView {
 }
 
 pub enum RootMsg {
-    LoadGraph(String),
+    LoadGraph(String)
 }
 
 impl Component for RootView {
@@ -47,13 +47,20 @@ impl Renderable<RootView> for RootView {
             match read_graphml(&graph_file) {
                 Ok(graph) => {
                     html! {
-                        <div>
-                            <SceneModel graph=graph />
+                        <div class="game-container">
+                            <div class="game__menu">
+                                <div class="game__load-new-scene">
+                                    <FileModel title="Загрузить файл игры" onloaded=|graph_file| RootMsg::LoadGraph(graph_file) />
+                                </div>
+                            </div>
+                            <div class="game__scene">
+                                <SceneModel graph=graph />
+                            </div>
                         </div>
                     }
                 }
                 Err(e) => {
-                    const MSG: &str = "Ошибка парсинга графа из GraphML формата";
+                    const MSG: &str = "Ошибка парсинга графа из GraphML формата. Попробуйте заново загрузить файл.";
                     //TODO: писать еще ошибку в лог.
                     html! {
                         <div class="error">{MSG}</div>

@@ -11,10 +11,12 @@ pub struct SceneModel {
     description: String,
     current_scene_id: NodeIndex,
     graph: Graph<Vertex, Edge>,
+    fisrt_scene_id: NodeIndex,
 }
 
 pub enum QuestMsg {
     Choice(usize),
+    ReloadToFirstScene,
 }
 
 #[derive(Clone, Properties)]
@@ -38,6 +40,7 @@ impl SceneModel {
             graph: graph.clone(),
             description: graph[first_scene].text.clone(),
             current_scene_id: first_scene,
+            fisrt_scene_id: first_scene,
         }
     }
 
@@ -45,6 +48,10 @@ impl SceneModel {
         self.graph
             .edges_directed(self.current_scene_id, Direction::Outgoing)
             .collect()
+    }
+
+    fn get_scene_description(&self, scene_id: NodeIndex) -> String {
+        self.graph[scene_id].text.clone()
     }
 }
 
@@ -61,12 +68,16 @@ impl Component for SceneModel {
             QuestMsg::Choice(number) => {
                 if let Some(found_vertex_ix) = self.get_choices().get(number) {
                     self.current_scene_id = found_vertex_ix.target();
-                    self.description = self.graph[self.current_scene_id].text.clone();
+                    self.description = self.get_scene_description(self.current_scene_id);
                 } else {
                     let msg = &format!("Не удалось получить вариант по номеру: {:?}", number);
                     self.console.log(msg);
                     panic!(msg.clone());
                 }
+            }
+            QuestMsg::ReloadToFirstScene => {
+                self.current_scene_id = self.fisrt_scene_id;
+                self.description = self.get_scene_description(self.current_scene_id);
             }
         }
         true
@@ -88,9 +99,14 @@ impl Renderable<SceneModel> for SceneModel {
 
         html! {
             <div class="quest-game">
-                <div class="quest-game__scene-description" augmented-ui="tl-clip t-clip tr-clip r-clip br-clip b-clip bl-clip l-clip exe">{self.description.clone()}</div>
-                <div class="quest-game__scene-choices">
-                        { for (0..choices.len()).map(view_message) }
+                <div class="quest-game__menu">
+                    <button class="quest-game__reload-game" onclick=|_| QuestMsg::ReloadToFirstScene > { "Начать сначала" } </button>
+                </div>
+                <div class="quest-game__scene">
+                    <div class="quest-game__scene-description" augmented-ui="tl-clip t-clip tr-clip r-clip br-clip b-clip bl-clip l-clip exe">{self.description.clone()}</div>
+                    <div class="quest-game__scene-choices">
+                            { for (0..choices.len()).map(view_message) }
+                    </div>
                 </div>
             </div>
         }
