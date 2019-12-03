@@ -112,9 +112,10 @@ impl Renderable<FileModel> for FileModel {
                     <label>{ "By chunks" }</label>
                     <input type="checkbox" checked=flag onclick=|_| FileMsg::ToggleByChunks />
                 </div>
-                <ul>
-                    { for self.files.iter().map(|f| self.view_file(f)) }
-                </ul>
+                // NOTE: нужно только для отладки
+                // <ul>
+                //     { for self.files.iter().map(|f| self.view_file(f)) }
+                // </ul>
             </div>
         }
     }

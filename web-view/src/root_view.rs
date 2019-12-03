@@ -1,6 +1,4 @@
-use yew::services::reader::{File, FileChunk, FileData, ReaderService, ReaderTask};
-use yew::services::ConsoleService;
-use yew::{html, ChangeData, Component, ComponentLink, Html, Renderable, ShouldRender};
+use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 
 #[path = "./file_upload_sample.rs"]
 pub mod file_upload;
@@ -18,7 +16,7 @@ pub struct RootView {
 }
 
 pub enum RootMsg {
-    LoadGraph(String)
+    LoadGraph(String),
 }
 
 impl Component for RootView {

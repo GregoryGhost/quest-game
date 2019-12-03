@@ -26,7 +26,22 @@ pub struct Props {
 
 impl SceneModel {
     fn new(mut console: ConsoleService, graph: Graph<Vertex, Edge>) -> SceneModel {
-        let first_scene: NodeIndex = match graph.node_indices().take(1).next() {
+        let (desc, first_scene_id) = SceneModel::init_scene_model(&graph, &mut console);
+
+        SceneModel {
+            console: console,
+            graph: graph,
+            description: desc,
+            current_scene_id: first_scene_id,
+            fisrt_scene_id: first_scene_id,
+        }
+    }
+
+    fn init_scene_model(
+        graph: &Graph<Vertex, Edge>,
+        console: &mut ConsoleService,
+    ) -> (String, NodeIndex) {
+        let first_scene_id: NodeIndex = match graph.node_indices().take(1).next() {
             Some(vertex) => vertex,
             None => {
                 const MSG: &str = "Не удалось получить первую вершину в графе";
@@ -35,13 +50,9 @@ impl SceneModel {
             }
         };
 
-        SceneModel {
-            console: console,
-            graph: graph.clone(),
-            description: graph[first_scene].text.clone(),
-            current_scene_id: first_scene,
-            fisrt_scene_id: first_scene,
-        }
+        let desc = SceneModel::get_scene_desc(graph, first_scene_id);
+
+        (desc, first_scene_id)
     }
 
     fn get_choices(&self) -> Vec<EdgeReference<'_, Edge>> {
@@ -50,8 +61,12 @@ impl SceneModel {
             .collect()
     }
 
+    fn get_scene_desc(graph: &Graph<Vertex, Edge>, scene_id: NodeIndex) -> String {
+        graph[scene_id].text.clone()
+    }
+
     fn get_scene_description(&self, scene_id: NodeIndex) -> String {
-        self.graph[scene_id].text.clone()
+        SceneModel::get_scene_desc(&self.graph, scene_id)
     }
 }
 
@@ -61,6 +76,16 @@ impl Component for SceneModel {
 
     fn create(props: Self::Properties, _: ComponentLink<Self>) -> Self {
         SceneModel::new(ConsoleService::new(), props.graph.clone())
+    }
+
+    fn change(&mut self, _props: Self::Properties) -> ShouldRender {
+        self.graph = _props.graph;
+        let (desc, first_scene_id) = SceneModel::init_scene_model(&self.graph, &mut self.console);
+        self.description = desc;
+        self.fisrt_scene_id = first_scene_id;
+        self.current_scene_id = self.fisrt_scene_id;
+
+        true
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
