@@ -5,6 +5,6 @@
 #[path = "./root_view.rs"]
 pub mod root;
 
-fn main() {
+pub fn main() {
     yew::start_app::<root::RootView>();
 }

@@ -1,6 +1,4 @@
-use yew::services::reader::{File, FileChunk, FileData, ReaderService, ReaderTask};
-use yew::services::ConsoleService;
-use yew::{html, ChangeData, Component, ComponentLink, Html, Renderable, ShouldRender};
+use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 
 #[path = "./file_upload_sample.rs"]
 pub mod file_upload;
@@ -44,18 +42,23 @@ impl Component for RootView {
 impl Renderable<RootView> for RootView {
     fn view(&self) -> Html<Self> {
         if let Some(graph_file) = &self.loaded_graph_file {
-
             match read_graphml(&graph_file) {
                 Ok(graph) => {
                     html! {
-                        <div>
-                            <SceneModel graph=graph />
+                        <div class="game__container">
+                            <div class="game__menu">
+                                <div class="game__load-new-scene">
+                                    <FileModel title="Загрузить файл игры" onloaded=|graph_file| RootMsg::LoadGraph(graph_file) />
+                                </div>
+                            </div>
+                            <div class="game__scene">
+                                <SceneModel graph=graph />
+                            </div>
                         </div>
                     }
-                },
+                }
                 Err(e) => {
-                    const MSG: &str =
-                        "Ошибка парсинга графа из GraphML формата";
+                    const MSG: &str = "Ошибка парсинга графа из GraphML формата. Попробуйте заново загрузить файл.";
                     //TODO: писать еще ошибку в лог.
                     html! {
                         <div class="error">{MSG}</div>
@@ -64,7 +67,7 @@ impl Renderable<RootView> for RootView {
             }
         } else {
             html! {
-                <div>
+                <div class="game__container">
                     <FileModel title="Загрузить файл игры" onloaded=|graph_file| RootMsg::LoadGraph(graph_file) />
                 </div>
             }

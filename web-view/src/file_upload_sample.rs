@@ -47,26 +47,24 @@ impl Component for FileModel {
             console: ConsoleService::new(),
             title: props.title,
             onloaded: props.onloaded,
-            error: None
+            error: None,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            FileMsg::Loaded(file) => {
-                match std::str::from_utf8(&file.content) {
-                    Ok(info) => {
-                        let data = info.to_owned();
-                        self.files.push(data.clone());
-                        self.onloaded.emit(data.clone());
-                    }
-                    Err(e) => {
-                        const MSG: &str = "Не удалось прочитать выбранный файл";
-                        self.error = Some(MSG);
-                        self.console.log(&format!("Msg: {}. Panic: {}", MSG, e));
-                    }
+            FileMsg::Loaded(file) => match std::str::from_utf8(&file.content) {
+                Ok(info) => {
+                    let data = info.to_owned();
+                    self.files.push(data.clone());
+                    self.onloaded.emit(data.clone());
                 }
-            }
+                Err(e) => {
+                    const MSG: &str = "Не удалось прочитать выбранный файл";
+                    self.error = Some(MSG);
+                    self.console.log(&format!("Msg: {}. Panic: {}", MSG, e));
+                }
+            },
             FileMsg::Chunk(chunk) => {
                 let info = format!("chunk: {:?}", chunk);
                 self.files.push(info);
@@ -98,25 +96,27 @@ impl Renderable<FileModel> for FileModel {
         let flag = self.by_chunks;
         html! {
             //TODO: добавить уведомление провальности загрузки файла.
-            <div>
+            <div class="file-upload__container">
                 <div>
-                    <input type="file" onchange=|value| {
+                    <input class="file-upload" type="file" onchange=|value| {
                             let mut result = Vec::new();
                             if let ChangeData::Files(files) = value {
                                 result.extend(files);
                             }
                             FileMsg::Files(result, flag)
                         } style="display:none" id="file_input"/>
-                    <label for="file_input">{ self.title }</label>
-                    <div class="error">{ if let Some(error) = self.error {error} else { "" } }</div>
+                    <label class="file-upload__label" for="file_input">{ self.title }</label>
+                    <div class="file-upload__error">{ if let Some(error) = self.error {error} else { "" } }</div>
                 </div>
-                <div>
-                    <label>{ "By chunks" }</label>
-                    <input type="checkbox" checked=flag onclick=|_| FileMsg::ToggleByChunks />
+                <div class="file-upload__options">
+                    <label class="file-upload__by-chunks_label">{ "By chunks" }</label>
+                    <input class="file-upload__by-chunks-checkbox" type="checkbox" checked=flag onclick=|_| FileMsg::ToggleByChunks />
                 </div>
-                <ul>
-                    { for self.files.iter().map(|f| self.view_file(f)) }
-                </ul>
+                // NOTE: нужно только для отладки
+                // TODO: нужно перенести в лог при отладке
+                // <ul>
+                //     { for self.files.iter().map(|f| self.view_file(f)) }
+                // </ul>
             </div>
         }
     }
