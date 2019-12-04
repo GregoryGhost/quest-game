@@ -96,23 +96,24 @@ impl Renderable<FileModel> for FileModel {
         let flag = self.by_chunks;
         html! {
             //TODO: добавить уведомление провальности загрузки файла.
-            <div>
+            <div class="file-upload__container">
                 <div>
-                    <input type="file" onchange=|value| {
+                    <input class="file-upload" type="file" onchange=|value| {
                             let mut result = Vec::new();
                             if let ChangeData::Files(files) = value {
                                 result.extend(files);
                             }
                             FileMsg::Files(result, flag)
                         } style="display:none" id="file_input"/>
-                    <label for="file_input">{ self.title }</label>
-                    <div class="error">{ if let Some(error) = self.error {error} else { "" } }</div>
+                    <label class="file-upload__label" for="file_input">{ self.title }</label>
+                    <div class="file-upload__error">{ if let Some(error) = self.error {error} else { "" } }</div>
                 </div>
-                <div>
-                    <label>{ "By chunks" }</label>
-                    <input type="checkbox" checked=flag onclick=|_| FileMsg::ToggleByChunks />
+                <div class="file-upload__options">
+                    <label class="file-upload__by-chunks_label">{ "By chunks" }</label>
+                    <input class="file-upload__by-chunks-checkbox" type="checkbox" checked=flag onclick=|_| FileMsg::ToggleByChunks />
                 </div>
                 // NOTE: нужно только для отладки
+                // TODO: нужно перенести в лог при отладке
                 // <ul>
                 //     { for self.files.iter().map(|f| self.view_file(f)) }
                 // </ul>
