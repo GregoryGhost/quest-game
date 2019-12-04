@@ -3,19 +3,31 @@ body {
 }
 
 $base-font-color: #dfd9d1;
+$base-font-size: 1.25em;
 
 .quest-game {
   display: flex;
   flex-wrap: wrap;
   margin: 0 auto;
   flex-direction: column;
-  justify-content: space-around;
-  align-content: space-between;
+  justify-content: space-between;
   align-items: center;
   color: $base-font-color;
   width: 90%;
-  font-size: 1.25em;
+  font-size: $base-font-size;
   
+  &__menu {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: stretch;
+    margin-bottom: 1em;
+  }
+
+  &__reload-game {
+    color: #0ab14a;
+  }
+
   &__scene{
       &-description {
         text-indent: 1em;
@@ -51,18 +63,28 @@ $base-font-color: #dfd9d1;
   &__container {
     display: flex;
     flex-wrap: wrap;
-    margin: 0 auto;
+    margin: 0;
+    padding: 0;
     flex-direction: column;
-    justify-content: space-around;
-    align-content: space-between;
+    justify-content: stretch;
+    align-content: center;
     align-items: center;
+    font-size: $base-font-size;
+  }
+
+  &__menu {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: stretch;
+    margin-bottom: 1em;
   }
 }
 
 
 .file-upload {
   &__container {
-    color: $base-font-color;
+    color: #b1ae0a;
     font-size: 1em;
   }
 }

@@ -67,7 +67,7 @@ impl Renderable<RootView> for RootView {
             }
         } else {
             html! {
-                <div>
+                <div class="game__container">
                     <FileModel title="Загрузить файл игры" onloaded=|graph_file| RootMsg::LoadGraph(graph_file) />
                 </div>
             }
