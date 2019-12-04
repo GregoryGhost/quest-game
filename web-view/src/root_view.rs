@@ -45,7 +45,7 @@ impl Renderable<RootView> for RootView {
             match read_graphml(&graph_file) {
                 Ok(graph) => {
                     html! {
-                        <div class="game-container">
+                        <div class="game__container">
                             <div class="game__menu">
                                 <div class="game__load-new-scene">
                                     <FileModel title="Загрузить файл игры" onloaded=|graph_file| RootMsg::LoadGraph(graph_file) />

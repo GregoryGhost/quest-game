@@ -47,6 +47,19 @@ $base-font-color: #dfd9d1;
 }
 
 
+.game {
+  &__container {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 auto;
+    flex-direction: column;
+    justify-content: space-around;
+    align-content: space-between;
+    align-items: center;
+  }
+}
+
+
 .file-upload {
   &__container {
     color: $base-font-color;
